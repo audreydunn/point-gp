@@ -6,9 +6,9 @@ Tree gets compiled top down
 import random
 
 class Node():
-    def __init__(self, name, args, id_list, depth=1, parent=None):
-        # Set to parent node unless root. Root has no parent
-        self.parent = parent
+    def __init__(self, name, args, id_list, dtype, depth=1):
+        # Data type of the node
+        self.dtype = dtype
 
         # 0 .. N children nodes. Leaves have 0 children
         # example args: ["0", child1, "1.0", "2", child2, child3]
@@ -41,17 +41,7 @@ class Node():
         Returns:
             Single compiled function
         """
-        return eval("lambda x: " + self.lisp(), pset, {})
-
-    def lisp(self):
-        """
-        Recursively converts the tree into a string of function calls
-        Based on LISP https://en.wikipedia.org/wiki/Lisp_(programming_language)
-
-        Returns:
-            LISP string representation of the 
-        """
-        return self.name + "(" + "".join([i.lisp() + ", " if isinstance(i, Node) else i + ", " for i in self.args])[:-2] + ")"
+        return eval("lambda x: " + self.__str__(), pset, {})
 
     def size(self):
         """
@@ -60,10 +50,11 @@ class Node():
         Returns:
             Number of nodes in the tree
         """
-        size = 0
+        # Size starts at 1 to count this node
+        size = 1
         for i in self.args:
             if isinstance(i, Node):
-                size += 1 + i.size()
+                size += i.size()
         return size
 
     def get_id_list(self):
@@ -75,6 +66,17 @@ class Node():
         """
         return self.id_list
 
+    def __str__(self):
+        """
+        Recursively converts the tree into a string of function calls
+        Based on LISP https://en.wikipedia.org/wiki/Lisp_(programming_language)
+
+        Returns:
+            LISP string representation of the tree
+        """
+        return self.name + "(" + "".join([str(i) + ", " if isinstance(i, Node) else i + ", " for i in self.args])[:-2] + ")"
+
+# TODO: Rewrite this to be strongly typed
 def generate(primitive_set, depth, arity, node_id):
     """
     Randomly generate a single tree
@@ -104,7 +106,7 @@ def generate(primitive_set, depth, arity, node_id):
             args = ["x" for i in range(primitive_set[primitive])]
 
             # Create the Node and add it to the list of children
-            nodes.append(Node(primitive, args, [node_id + str(id_counter)], depth=depth))
+            nodes.append(Node(primitive, args, [node_id + str(id_counter)], None, depth=depth))
 
             # Increment id counter so each child will have a different id
             id_counter += 1
@@ -126,7 +128,7 @@ def generate(primitive_set, depth, arity, node_id):
             id_list += node.get_id_list()
         
         # Create the Node and add it to the list of children
-        nodes.append(Node(primitive, p_nodes, id_list, depth=depth))
+        nodes.append(Node(primitive, p_nodes, id_list, None, depth=depth))
 
         # Increment id counter so each child will have a different id
         id_counter += 1
@@ -184,8 +186,23 @@ def apply_at_node(modifier, primitive_set, tree, node_id):
     return tree
 
 if __name__ == '__main__':
+    # We should use strings for dtypes instead of actual types
+    # Memory usage:
+    # sys.getsizeof("float") = 54
+    # sys.getsizeof(float) = 400
+    primitive_set = {"operator": [{"name": "add", "input_types": ["x", "float"]}, 
+                                  {"name": "add", "input_types": ["float", "float"]}],
+                    
+                     "float": [ {"name": "uniform[0,1]", "input_types": [random.random]} ]
+                    }
+    # Input types can be functions, which will be called when the node is generated
+    # The string of the tree will then have the precomputed value
+
+    # WIP Primitive Set that currently works
     primitive_set = {"add":2, "subtract":2, "multiply":2, "divide":2}
 
     tree = generate_tree_naive(primitive_set, depth=4)
-    print("Tree String:\n{}".format(tree.lisp()))
+    print("Tree String:\n{}".format(str(tree)))
     print("Unique Node IDs:\n{}".format(tree.get_id_list()))
+    print("Tree Size (Number of Nodes):\n{}".format(tree.size()))
+    # TODO: Create functions for the primitives, so tree.compile() can be tested
