@@ -2,6 +2,8 @@
 A Tree consists of one root Node linking down to every other node
 
 Tree gets compiled top down
+
+TODO: Decide if Node object should contain primitive function pointer
 """
 import random
 
@@ -152,6 +154,8 @@ def generate_tree_naive(primitive_set, depth=1):
     if depth < 1:
         raise ValueError("Depth must be greater than 0")
 
+    # TODO: First node should have the "x" output type
+
     return generate(primitive_set, depth, 1, "")[0]
 
 def apply_at_node(modifier, primitive_set, tree, node_id):
@@ -190,11 +194,28 @@ if __name__ == '__main__':
     # Memory usage:
     # sys.getsizeof("float") = 54
     # sys.getsizeof(float) = 400
-    primitive_set = {"operator": [{"name": "add", "input_types": ["x", "float"]}, 
-                                  {"name": "add", "input_types": ["float", "float"]}],
-                    
-                     "float": [ {"name": "uniform[0,1]", "input_types": [random.random]} ]
+    # TODO: Automate the creation of the primitive set
+    primitive_set = {"operator": [{"name": "add_x_float", "input_types": ["x", "float"], "output_type": "x"}, 
+                                  {"name": "add_float_float", "input_types": ["float", "float"], "output_type": "float"},
+                                  {"name": "add_x_x", "input_types": ["x", "x"], "output_type": "x"},
+
+                                  {"name": "sub_x_float", "input_types": ["x", "float"], "output_type": "x"}, 
+                                  {"name": "sub_float_float", "input_types": ["float", "float"], "output_type": "float"},
+                                  {"name": "sub_x_x", "input_types": ["x", "x"], "output_type": "x"},
+
+                                  {"name": "mult_x_float", "input_types": ["x", "float"], "output_type": "x"}, 
+                                  {"name": "mult_float_float", "input_types": ["float", "float"], "output_type": "float"},
+                                  {"name": "mult_x_x", "input_types": ["x", "x"], "output_type": "x"},
+
+                                  {"name": "div_x_float", "input_types": ["x", "float"], "output_type": "x"}, 
+                                  {"name": "div_float_float", "input_types": ["float", "float"], "output_type": "float"},
+                                  {"name": "div_x_x", "input_types": ["x", "x"], "output_type": "x"}],
                     }
+
+    # TODO: Figure out a way for primitives to select specific terminals from the float type (So the user does not have to constantly define new types that do the same thing)
+    terminal_set = {"float": [ {"name": "uniform[0,1]", "input_types": [random.random], "output_type": "float"} ]
+                   }
+
     # Input types can be functions, which will be called when the node is generated
     # The string of the tree will then have the precomputed value
 
