@@ -29,10 +29,10 @@ class Node():
         # Casts to an int to reduce memory usage
         self.id_list = id_list
 
-    def compile(self, pset):
+    def get_func(self, pset):
         """
         Recursively converts the tree into a string of function calls
-        Then compiles those function calls into a single function call
+        Then wraps those function calls into a single function call
 
         This function assumes a single input, x
         Which can be used in multiple places
@@ -41,9 +41,18 @@ class Node():
             pset: dictionary where (key, value) is (string, function)
 
         Returns:
-            Single compiled function
+            Callable function of the tree
         """
         return eval("lambda x: " + self.__str__(), pset, {})
+
+    def get_id_list(self):
+        """
+        Get list of ids
+
+        Returns:
+            List containing the ids of every node in the tree
+        """
+        return self.id_list
 
     def size(self):
         """
@@ -58,15 +67,6 @@ class Node():
             if isinstance(i, Node):
                 size += i.size()
         return size
-
-    def get_id_list(self):
-        """
-        Get list of ids
-
-        Returns:
-            List containing the ids of every node in the tree
-        """
-        return self.id_list
 
     def __str__(self):
         """
@@ -195,25 +195,28 @@ if __name__ == '__main__':
     # sys.getsizeof("float") = 54
     # sys.getsizeof(float) = 400
     # TODO: Automate the creation of the primitive set
-    primitive_set = {"operator": [{"name": "add_x_float", "input_types": ["x", "float"], "output_type": "x"}, 
-                                  {"name": "add_float_float", "input_types": ["float", "float"], "output_type": "float"},
-                                  {"name": "add_x_x", "input_types": ["x", "x"], "output_type": "x"},
+    # output_type -> (name, input_types, group)
+    primitive_set = {"x": [{"name": "add_x_float", "input_types": ["x", "float"], "group": "operators"},  
+                           {"name": "add_x_x", "input_types": ["x", "x"], "group": "operators"},
 
-                                  {"name": "sub_x_float", "input_types": ["x", "float"], "output_type": "x"}, 
-                                  {"name": "sub_float_float", "input_types": ["float", "float"], "output_type": "float"},
-                                  {"name": "sub_x_x", "input_types": ["x", "x"], "output_type": "x"},
+                           {"name": "sub_x_float", "input_types": ["x", "float"], "group": "operators"}, 
+                           {"name": "sub_x_x", "input_types": ["x", "x"], "group": "operators"},
 
-                                  {"name": "mult_x_float", "input_types": ["x", "float"], "output_type": "x"}, 
-                                  {"name": "mult_float_float", "input_types": ["float", "float"], "output_type": "float"},
-                                  {"name": "mult_x_x", "input_types": ["x", "x"], "output_type": "x"},
+                           {"name": "mult_x_float", "input_types": ["x", "float"], "group": "operators"}, 
+                           {"name": "mult_x_x", "input_types": ["x", "x"], "group": "operators"},
 
-                                  {"name": "div_x_float", "input_types": ["x", "float"], "output_type": "x"}, 
-                                  {"name": "div_float_float", "input_types": ["float", "float"], "output_type": "float"},
-                                  {"name": "div_x_x", "input_types": ["x", "x"], "output_type": "x"}],
+                           {"name": "div_x_float", "input_types": ["x", "float"], "group": "operators"}, 
+                           {"name": "div_x_x", "input_types": ["x", "x"], "group": "operators"}],
+
+                     "float": [{"name": "add_float_float", "input_types": ["float", "float"], "group": "operators"},
+                               {"name": "sub_float_float", "input_types": ["float", "float"], "group": "operators"},
+                               {"name": "mult_float_float", "input_types": ["float", "float"], "group": "operators"},
+                               {"name": "div_float_float", "input_types": ["float", "float"], "group": "operators"}]
                     }
 
     # TODO: Figure out a way for primitives to select specific terminals from the float type (So the user does not have to constantly define new types that do the same thing)
-    terminal_set = {"float": [ {"name": "uniform[0,1]", "input_types": [random.random], "output_type": "float"} ]
+    # Note: Terminals and Ephemeral Constants are the same thing in this framework
+    terminal_set = {"float": [ {"name": "uniform[0,1]", "input_types": [random.random]} ]
                    }
 
     # Input types can be functions, which will be called when the node is generated
