@@ -2,8 +2,6 @@
 A Tree consists of one root Node linking down to every other node
 
 Tree gets compiled top down
-
-TODO: Decide if Node object should contain primitive function pointer
 """
 import random
 
@@ -79,7 +77,7 @@ class Node():
         return self.name + "(" + "".join([str(i) + ", " if isinstance(i, Node) else i + ", " for i in self.args])[:-2] + ")"
 
 # TODO: Rewrite this to be strongly typed
-def generate(primitive_set, depth, arity, node_id):
+def generate_naive(primitive_set, depth, arity, node_id):
     """
     Randomly generate a single tree
 
@@ -137,6 +135,64 @@ def generate(primitive_set, depth, arity, node_id):
 
     return nodes
 
+def generate(primitive_set, terminal_set, depth, output_types, node_id):
+    """
+    Randomly generate a single tree
+
+    Args:
+        primitive_set: dictionary where (key, value) is (output_type, [{"name", "input_types", "group"}, ...])
+        terminal_set:  dictionary where (key, value) is (output_type, [{"name", "generator"}, ...])
+        depth:         current depth level
+        output_types:  list of primitive types to generate
+        node_id:       string id of the node
+
+    Returns:
+        Node containing full tree
+    """
+    # List of child nodes
+    nodes = []
+    # Use to differentiate ids
+    id_counter = 0
+
+    # Leaf node
+    if depth == 1:
+        for output_type in output_types:
+            # Select a random primitive with the correct output type
+            primitive = random.choice(primitive_set[output_type])
+
+            # Set the input of the leaf node to be the original input data
+            # primitive_set[primitive] is the arity of the primitive
+            args = [str(random.choice(terminal_set[input_type])["generator"]()) for input_type in primitive["input_types"]]
+
+            # Create the Node and add it to the list of children
+            nodes.append(Node(primitive["name"], args, [node_id + str(id_counter)], None, depth=depth))
+
+            # Increment id counter so each child will have a different id
+            id_counter += 1
+        
+        return nodes
+
+    # All other nodes
+    for output_type in output_types:
+        # Select a random primitive with the correct output type
+        primitive = random.choice(primitive_set[output_type])
+
+        # Generate children nodes
+        # One for each input type
+        p_nodes = generate(primitive_set, terminal_set, depth-1, primitive["input_types"], node_id + str(id_counter))
+
+        # Create full list of ids by combining the id lists of the children
+        id_list = [node_id + str(id_counter)]
+        for node in p_nodes:
+            id_list += node.get_id_list()
+        
+        # Create the Node and add it to the list of children
+        nodes.append(Node(primitive["name"], p_nodes, id_list, None, depth=depth))
+
+        # Increment id counter so each child will have a different id
+        id_counter += 1
+
+    return nodes
 
 def generate_tree_naive(primitive_set, depth=1):
     """
@@ -156,7 +212,26 @@ def generate_tree_naive(primitive_set, depth=1):
 
     # TODO: First node should have the "x" output type
 
-    return generate(primitive_set, depth, 1, "")[0]
+    return generate_naive(primitive_set, depth, 1, "")[0]
+
+def generate_tree(primitive_set, terminal_set, depth=1):
+    """
+    Randomly generate a single tree
+    Assume every primitive can be used as an output (symbolic regression)
+    Assume nothing has non "x" inputs like floats and ints
+
+    Args:
+        primitive_set: dictionary where (key, value) is (output_type, [{"name", "input_types", "group"}, ...])
+        terminal_set:  dictionary where (key, value) is (output_type, [{"name", "generator"}, ...])
+        depth:         maximum depth of tree
+
+    Returns:
+        Node containing full tree
+    """
+    if depth < 1:
+        raise ValueError("Depth must be greater than 0")
+
+    return generate(primitive_set, terminal_set, depth, ["x"], "")[0]
 
 def apply_at_node(modifier, primitive_set, tree, node_id):
     """
@@ -190,6 +265,9 @@ def apply_at_node(modifier, primitive_set, tree, node_id):
     return tree
 
 if __name__ == '__main__':
+    # OLD Primitive Set
+    # primitive_set = {"add":2, "subtract":2, "multiply":2, "divide":2}
+
     # We should use strings for dtypes instead of actual types
     # Memory usage:
     # sys.getsizeof("float") = 54
@@ -216,16 +294,14 @@ if __name__ == '__main__':
 
     # TODO: Figure out a way for primitives to select specific terminals from the float type (So the user does not have to constantly define new types that do the same thing)
     # Note: Terminals and Ephemeral Constants are the same thing in this framework
-    terminal_set = {"float": [ {"name": "uniform[0,1]", "input_types": [random.random]} ]
+
+    # Generators are functions which will be called when the node is generated
+    # The string of the tree will then have the precomputed value
+    terminal_set = {"float": [{"name": "uniform[0,1]", "generator": random.random}],
+                    "x": [{"name": "default", "generator": lambda: "x"}]
                    }
 
-    # Input types can be functions, which will be called when the node is generated
-    # The string of the tree will then have the precomputed value
-
-    # WIP Primitive Set that currently works
-    primitive_set = {"add":2, "subtract":2, "multiply":2, "divide":2}
-
-    tree = generate_tree_naive(primitive_set, depth=4)
+    tree = generate_tree(primitive_set, terminal_set, depth=4)
     print("Tree String:\n{}".format(str(tree)))
     print("Unique Node IDs:\n{}".format(tree.get_id_list()))
     print("Tree Size (Number of Nodes):\n{}".format(tree.size()))
