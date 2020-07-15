@@ -6,10 +6,8 @@ Tree gets compiled top down
 import random
 
 class Node():
-    def __init__(self, name, args, id_list, dtype, depth=1):
-        # Data type of the node
-        self.dtype = dtype
-
+    def __init__(self, name, args, id_list, output_type):
+        
         # 0 .. N children nodes. Leaves have 0 children
         # example args: ["0", child1, "1.0", "2", child2, child3]
         self.args = args
@@ -18,10 +16,9 @@ class Node():
         # example: math.sin
         self.name = name
 
-        # Depth node is at in the tree
-        # Not sure if this will stay around because 
-        # it has to be updated when the tree changes
-        self.depth = depth
+        # Data type of the node
+        # This is the output type
+        self.output_type = output_type
 
         # ID used for evolutionary operators
         # Casts to an int to reduce memory usage
@@ -76,6 +73,23 @@ class Node():
         """
         return self.name + "(" + "".join([str(i) + ", " if isinstance(i, Node) else i + ", " for i in self.args])[:-2] + ")"
 
+class TerminalNode(Node):
+    def __init__(self, name, args, id_list, output_type, generator):
+        super().__init__(name, args, id_list, output_type)
+
+        # String of the terminal value
+        # This should be a python primitive (float, int, str, list, etc ...)
+        # We store this as a string in memory to reduce memory usage
+        # The value can always be cast into its original type
+        self.value = str(generator())
+
+    def __str__(self):
+        """
+        Returns:
+            string representation of terminal value
+        """
+        return self.value
+
 # TODO: Rewrite this to be strongly typed
 def generate_naive(primitive_set, depth, arity, node_id):
     """
@@ -106,7 +120,7 @@ def generate_naive(primitive_set, depth, arity, node_id):
             args = ["x" for i in range(primitive_set[primitive])]
 
             # Create the Node and add it to the list of children
-            nodes.append(Node(primitive, args, [node_id + str(id_counter)], None, depth=depth))
+            nodes.append(Node(primitive, args, [node_id + str(id_counter)], None))
 
             # Increment id counter so each child will have a different id
             id_counter += 1
@@ -128,7 +142,7 @@ def generate_naive(primitive_set, depth, arity, node_id):
             id_list += node.get_id_list()
         
         # Create the Node and add it to the list of children
-        nodes.append(Node(primitive, p_nodes, id_list, None, depth=depth))
+        nodes.append(Node(primitive, p_nodes, id_list, None))
 
         # Increment id counter so each child will have a different id
         id_counter += 1
@@ -160,12 +174,27 @@ def generate(primitive_set, terminal_set, depth, output_types, node_id):
             # Select a random primitive with the correct output type
             primitive = random.choice(primitive_set[output_type])
 
-            # Set the input of the leaf node to be the original input data
-            # primitive_set[primitive] is the arity of the primitive
-            args = [str(random.choice(terminal_set[input_type])["generator"]()) for input_type in primitive["input_types"]]
+            # Keeps track of the terminal node ids
+            # Starts with the node id of the parent
+            node_ids = [node_id + str(id_counter)]
+
+            # Set the leaf nodes to be Terminal Nodes
+            term_args = []
+            id_counter_term = 0
+            for input_type in primitive["input_types"]:
+                # Choose a random terminal with the correct output type
+                terminal = random.choice(terminal_set[input_type])
+                # Create a new TerminalNode
+                term_args.append(TerminalNode(terminal["name"], 
+                                         [], [node_id + str(id_counter) + str(id_counter_term)], 
+                                         input_type, terminal["generator"]))
+                # Add terminal node id to the node id list
+                node_ids.append(node_id + str(id_counter) + str(id_counter_term))
+                # Increment terminal id counter so each terminal will have a different id
+                id_counter_term += 1
 
             # Create the Node and add it to the list of children
-            nodes.append(Node(primitive["name"], args, [node_id + str(id_counter)], None, depth=depth))
+            nodes.append(Node(primitive["name"], term_args, node_ids, output_type))
 
             # Increment id counter so each child will have a different id
             id_counter += 1
@@ -187,7 +216,7 @@ def generate(primitive_set, terminal_set, depth, output_types, node_id):
             id_list += node.get_id_list()
         
         # Create the Node and add it to the list of children
-        nodes.append(Node(primitive["name"], p_nodes, id_list, None, depth=depth))
+        nodes.append(Node(primitive["name"], p_nodes, id_list, output_type))
 
         # Increment id counter so each child will have a different id
         id_counter += 1
@@ -233,15 +262,25 @@ def generate_tree(primitive_set, terminal_set, depth=1):
 
     return generate(primitive_set, terminal_set, depth, ["x"], "")[0]
 
-def apply_at_node(modifier, primitive_set, tree, node_id):
+def apply_at_node(modifier, primitive_set, terminal_set, tree, node_id):
     """
     Recurse through the tree until the node is found
     Then apply an operation to the node
+
+    Args:
+        modifier: callable function that modifies a Node
+        primitive_set: dictionary where (key, value) is (output_type, [{"name", "input_types", "group"}, ...])
+        terminal_set:  dictionary where (key, value) is (output_type, [{"name", "generator"}, ...])
+        tree: Node containing full tree
+        node_id: string id directing which nodes to traverse
+
+    Returns:
+        Node containing full tree
     """
     # We have reached the correct node if the string is empty
     if node_id == "":
         # Apply the modification
-        tree = modifier(primitive_set, tree)
+        tree = modifier(primitive_set, terminal_set, tree)
 
         # Return the modified tree node
         return tree
@@ -302,7 +341,9 @@ if __name__ == '__main__':
                    }
 
     tree = generate_tree(primitive_set, terminal_set, depth=4)
-    print("Tree String:\n{}".format(str(tree)))
-    print("Unique Node IDs:\n{}".format(tree.get_id_list()))
-    print("Tree Size (Number of Nodes):\n{}".format(tree.size()))
+    print("Tree String:\n{}\n".format(str(tree)))
+    node_ids = tree.get_id_list()
+    print("Unique Node IDs:\n{}\n".format(node_ids))
+    print("Number of Unique Node IDs:\n{}\n".format(len(node_ids)))
+    print("Tree Size (Number of Nodes):\n{}\n".format(tree.size()))
     # TODO: Create functions for the primitives, so tree.compile() can be tested
