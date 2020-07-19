@@ -1,4 +1,4 @@
-from core import apply_at_node
+from tree import apply_at_node
 import random
 
 def mutate(mutation, primitive_set, terminal_set, tree):

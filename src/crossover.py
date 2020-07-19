@@ -1,4 +1,4 @@
-from core import apply_at_node
+from tree import apply_at_node
 import random
 
 def one_point_crossover(tree_1, tree_2):
