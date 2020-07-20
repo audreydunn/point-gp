@@ -26,7 +26,7 @@ class Node():
         # Casts to an int to reduce memory usage
         self.id_list = id_list
 
-    def get_func(self, pset):
+    def get_func(self, func_pointers):
         """
         Recursively converts the tree into a string of function calls
         Then wraps those function calls into a single function call
@@ -40,7 +40,7 @@ class Node():
         Returns:
             Callable function of the tree
         """
-        return eval("lambda x: " + self.__str__(), pset, {})
+        return eval("lambda x: " + self.__str__(), func_pointers, {})
 
     def get_id_list(self):
         """
@@ -174,7 +174,7 @@ def generate(primitive_set, terminal_set, depth, output_types, node_id):
     if depth == 1:
         for output_type in output_types:
             # Select a random primitive with the correct output type
-            primitive = random.choice(primitive_set[output_type])
+            primitive = random.choice(primitive_set.node_set[output_type])
 
             # Keeps track of the terminal node ids
             # Starts with the node id of the parent
@@ -185,7 +185,7 @@ def generate(primitive_set, terminal_set, depth, output_types, node_id):
             id_counter_term = 0
             for input_type in primitive["input_types"]:
                 # Choose a random terminal with the correct output type
-                terminal = random.choice(terminal_set[input_type])
+                terminal = random.choice(terminal_set.node_set[input_type])
                 # Create a new TerminalNode
                 term_args.append(TerminalNode(terminal["name"], 
                                          [], [node_id + str(id_counter) + str(id_counter_term)], 
@@ -206,7 +206,7 @@ def generate(primitive_set, terminal_set, depth, output_types, node_id):
     # All other nodes
     for output_type in output_types:
         # Select a random primitive with the correct output type
-        primitive = random.choice(primitive_set[output_type])
+        primitive = random.choice(primitive_set.node_set[output_type])
 
         # Generate children nodes
         # One for each input type

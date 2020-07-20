@@ -1,42 +1,40 @@
+from node_set import PrimitiveSet, TerminalSet
 from tree import generate_tree
+import numpy as np
 import random
 
 if __name__ == '__main__':
-    # OLD Primitive Set
-    # primitive_set = {"add":2, "subtract":2, "multiply":2, "divide":2}
-
     # We should use strings for dtypes instead of actual types
     # Memory usage:
     # sys.getsizeof("float") = 54
     # sys.getsizeof(float) = 400
-    # TODO: Automate the creation of the primitive set
+    primitive_set = PrimitiveSet()
     # output_type -> (name, input_types, group)
-    primitive_set = {"x": [{"name": "add_x_float", "input_types": ["x", "float"], "group": "operators"},  
-                           {"name": "add_x_x", "input_types": ["x", "x"], "group": "operators"},
+    primitive_set.add_primitive(np.add, "x", "add_x_float", ["x", "float"], "operators")
+    primitive_set.add_primitive(np.add, "x", "add_x_x", ["x", "x"], "operators")
 
-                           {"name": "sub_x_float", "input_types": ["x", "float"], "group": "operators"}, 
-                           {"name": "sub_x_x", "input_types": ["x", "x"], "group": "operators"},
+    primitive_set.add_primitive(np.subtract, "x", "sub_x_float", ["x", "float"], "operators")
+    primitive_set.add_primitive(np.subtract, "x", "sub_x_x", ["x", "x"], "operators")
 
-                           {"name": "mult_x_float", "input_types": ["x", "float"], "group": "operators"}, 
-                           {"name": "mult_x_x", "input_types": ["x", "x"], "group": "operators"},
+    primitive_set.add_primitive(np.multiply, "x", "mult_x_float", ["x", "float"], "operators")
+    primitive_set.add_primitive(np.multiply, "x", "mult_x_x", ["x", "x"], "operators")
 
-                           {"name": "div_x_float", "input_types": ["x", "float"], "group": "operators"}, 
-                           {"name": "div_x_x", "input_types": ["x", "x"], "group": "operators"}],
+    primitive_set.add_primitive(np.divide, "x", "div_x_float", ["x", "float"], "operators")
+    primitive_set.add_primitive(np.divide, "x", "div_x_x", ["x", "x"], "operators")
 
-                     "float": [{"name": "add_float_float", "input_types": ["float", "float"], "group": "operators"},
-                               {"name": "sub_float_float", "input_types": ["float", "float"], "group": "operators"},
-                               {"name": "mult_float_float", "input_types": ["float", "float"], "group": "operators"},
-                               {"name": "div_float_float", "input_types": ["float", "float"], "group": "operators"}]
-                    }
+    primitive_set.add_primitive(np.add, "float", "add_float_float", ["float", "float"], "operators")
+    primitive_set.add_primitive(np.subtract, "float", "sub_float_float", ["float", "float"], "operators")
+    primitive_set.add_primitive(np.multiply, "float", "mult_float_float", ["float", "float"], "operators")
+    primitive_set.add_primitive(np.divide, "float", "div_float_float", ["float", "float"], "operators")
 
     # TODO: Figure out a way for primitives to select specific terminals from the float type (So the user does not have to constantly define new types that do the same thing)
     # Note: Terminals and Ephemeral Constants are the same thing in this framework
 
     # Generators are functions which will be called when the node is generated
     # The string of the tree will then have the precomputed value
-    terminal_set = {"float": [{"name": "uniform[0,1]", "generator": random.random}],
-                    "x": [{"name": "original_input", "generator": lambda: "x"}]
-                   }
+    terminal_set = TerminalSet()
+    terminal_set.add_terminal("float", "uniform[0,1]", random.random)
+    terminal_set.add_terminal("x", "original_input", lambda: "x")
 
     tree = generate_tree(primitive_set, terminal_set, depth=4)
     print("Tree String:\n{}\n".format(str(tree)))
@@ -44,4 +42,10 @@ if __name__ == '__main__':
     print("Unique Node IDs:\n{}\n".format(node_ids))
     print("Number of Unique Node IDs:\n{}\n".format(len(node_ids)))
     print("Tree Size (Number of Nodes):\n{}\n".format(tree.size()))
-    # TODO: Create functions for the primitives, so tree.compile() can be tested
+
+    # Generate function pointer for the tree
+    func = tree.get_func(primitive_set.function_pointers)
+
+    # Evaluate Tree
+    x = np.array([4.6, 7.3, 9.5])
+    print("Tree Output:\n{}\n".format(func(x)))

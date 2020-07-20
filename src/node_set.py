@@ -8,6 +8,7 @@ class NodeSet():
     def __init__(self):
         # Stores all of the node set information
         self.node_set = {}
+        self.function_pointers = {}
 
     def __add__(self, other):
         """
@@ -19,6 +20,9 @@ class NodeSet():
 
         # Make a deepcopy of self to make sure the original NodeSet is not modified
         new_set = deepcopy(self)
+
+        # Add function_pointers together
+        new_set.function_pointers.update(other.function_pointers)
 
         # Combine the node_sets
         # If dict.update(other_dict) is used instead then 
@@ -56,7 +60,7 @@ class PrimitiveSet(NodeSet):
     def __init__(self):
         super().__init__()
 
-    def add_primitive(self, output_type, name, input_types, group):
+    def add_primitive(self, func, output_type, name, input_types, group):
         """
         Stores relevant primitive information into the primitive set
 
@@ -80,6 +84,10 @@ class PrimitiveSet(NodeSet):
         # Raise error if primitive name already exists
         if found_name:
             raise Exception("Primitive Name: {} Already Exists".format(name))
+
+        # Set primitive name to point to its function
+        # If a primitive wrapper is implemented, then this code needs to be modified
+        self.function_pointers[name] = func
 
         # Check if the output_type is not already in the primitive set
         if output_type not in self.node_set:
