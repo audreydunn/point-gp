@@ -1,4 +1,5 @@
 from node_set import PrimitiveSet, TerminalSet
+from mutation import mutate, mutate_replace
 from tree import generate_tree
 import numpy as np
 import random
@@ -33,8 +34,8 @@ if __name__ == '__main__':
     # Generators are functions which will be called when the node is generated
     # The string of the tree will then have the precomputed value
     terminal_set = TerminalSet()
-    terminal_set.add_terminal("float", "uniform[0,1]", random.random)
-    terminal_set.add_terminal("x", "original_input", lambda: "x")
+    terminal_set.add_terminal("float", "uniform[0,1]", random.random, True)
+    terminal_set.add_terminal("x", "original_input", lambda: "x", True)
 
     tree = generate_tree(primitive_set, terminal_set, depth=4)
     print("Tree String:\n{}\n".format(str(tree)))
@@ -49,3 +50,15 @@ if __name__ == '__main__':
     # Evaluate Tree
     x = np.array([4.6, 7.3, 9.5])
     print("Tree Output:\n{}\n".format(func(x)))
+
+    # Perform mutation on the tree
+    tree = mutate(mutate_replace, primitive_set, terminal_set, tree)
+
+    # Print new tree
+    print("Mutated Tree String:\n{}\n".format(str(tree)))
+    print("Mutated Tree Size (Number of Nodes):\n{}\n".format(tree.size()))
+
+    # Re-evaluate the tree after the mutation
+    func = tree.get_func(primitive_set.function_pointers)
+    x = np.array([4.6, 7.3, 9.5])
+    print("Mutated sTree Output:\n{}\n".format(func(x)))

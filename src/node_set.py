@@ -101,7 +101,7 @@ class TerminalSet(NodeSet):
     def __init__(self):
        super().__init__()
 
-    def add_terminal(self, output_type, name, generator):
+    def add_terminal(self, output_type, name, generator, static):
         """
         Stores relevant terminal information into the terminal set
 
@@ -109,6 +109,7 @@ class TerminalSet(NodeSet):
             output_type: string of the output type
             name: unique string of the primitive
             generator: function that generates the output type
+            static: determines whether mutating changes terminal types
 
         """
         # Make sure terminal name is unique
@@ -125,10 +126,14 @@ class TerminalSet(NodeSet):
         if found_name:
             raise Exception("Terminal Name: {} Already Exists".format(name))
 
+        # Raise error if static is not a Boolean
+        if not isinstance(static, bool):
+            raise Exception("static variable must be a Boolean: True/False.")
+
         # Check if the output_type is not already in the terminal set
         if output_type not in self.node_set:
             # Create output_type list
             self.node_set[output_type] = []
         
-        # Add the primitive information
-        self.node_set[output_type].append({"name": name, "generator": generator})
+        # Add the terminal information
+        self.node_set[output_type].append({"name": name, "generator": generator, "static": static})
