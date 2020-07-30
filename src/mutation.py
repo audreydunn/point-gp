@@ -1,8 +1,9 @@
-from tree import apply_at_node, TerminalNode
+from tree import apply_at_node, TerminalNode, generate
 import random
 
-def mutate(mutation, primitive_set, terminal_set, tree):
+def mutate(mutation, primitive_set, terminal_set, tree, use_x_list=False):
     """
+    TODO: Find a better way to implement use_x_list
     Applies a mutation to the tree
 
     Args:
@@ -15,7 +16,7 @@ def mutate(mutation, primitive_set, terminal_set, tree):
         Node containing full tree
     """
     # Randomly choose a node
-    node_id = random.choice(tree.get_id_list())
+    node_id = random.choice(tree.get_x_list()) if use_x_list else random.choice(tree.get_id_list())
 
     # Take off root id
     node_id = node_id[1:]
@@ -86,13 +87,40 @@ def mutate_replace(primitive_set, terminal_set, tree):
     # Return modified tree
     return tree
 
+def cleanup_mutated_node_ids(tree):
+    """
+    Removes incorrect characters from node_ids of a tree
+    Only works on trees with depth 1
+
+    Args:
+        tree: Node containing full tree
+
+    Returns:
+        Node containing full tree
+    """
+    # Remove the "0" added to the end of the parent id
+    tree.node_id = tree.node_id[:-1]
+
+    # Remove the "0" added to the child ids
+    for i in range(len(tree.args)):
+        # Remove second to last character
+        tree.args[i].node_id = tree.args[i].node_id[:-2] + tree.args[i].node_id[-1]
+        # Update child id lists
+        tree.args[i].update_id_list()
+        # Update x_list if output type is "x"
+        if tree.args[i].output_type == "x":
+            tree.args[i].x_list = tree.args[i].id_list
+
+    # Update parent id lists
+    tree.update_id_list()
+    tree.update_x_list()
+
+    return tree
+
 def mutate_insert(primitive_set, terminal_set, tree):
     """
-    Randomly selects a node in the tree
-    and adds a new node with the current node
-    as one of its inputs
-
-    Adds additional child nodes as needed
+    Randomly selects a Terminal with output type "x"
+    and generates new subtree in place of it with depth 1
 
     Args:
         primitive_set: dictionary where (key, value) is (output_type, [{"name", "input_types", "group"}, ...])
@@ -102,7 +130,7 @@ def mutate_insert(primitive_set, terminal_set, tree):
     Returns:
         Node containing full tree
     """
-    pass
+    return cleanup_mutated_node_ids(generate(primitive_set, terminal_set, 1, ["x"], tree.node_id)[0])
 
 def mutate_shrink(primitive_set, terminal_set, tree):
     """

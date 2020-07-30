@@ -8,7 +8,7 @@ TODO: Make node_id list recursive
 import random
 
 class Node():
-    def __init__(self, name, args, id_list, output_type, input_types):
+    def __init__(self, name, args, node_id, id_list, x_list, output_type, input_types):
         
         # 0 .. N children nodes. Leaves have 0 children
         # example args: ["0", child1, "1.0", "2", child2, child3]
@@ -26,8 +26,16 @@ class Node():
         # Used for evolutionary operators
         self.input_types = input_types
 
+        # Node ID of this node
+        # Used to update id_list
+        self.node_id = node_id
+
         # ID used for evolutionary operators
         self.id_list = id_list
+
+        # List of IDs for terminal nodes with "x" output_type
+        # Used for evolutionary operators
+        self.x_list = x_list
 
     def get_func(self, func_pointers):
         """
@@ -53,6 +61,32 @@ class Node():
             List containing the ids of every node in the tree
         """
         return self.id_list
+
+    def get_x_list(self):
+        """
+        Get list of ids
+        Where each id is a terminal node with output_type "x"
+
+        Returns:
+            List containing the ids of every terminal node with output_type "x" in the tree
+        """
+        return self.x_list
+
+    def update_id_list(self):
+        """
+        Updates id_list by adding together the id_list of every child
+        """
+        self.id_list = [self.node_id]
+        for i in self.args:
+            self.id_list += i.get_id_list()
+
+    def update_x_list(self):
+        """
+        Updates x_list by adding together the x_list of every child
+        """
+        self.x_list = []
+        for i in self.args:
+            self.x_list += i.get_x_list()
 
     def size(self):
         """
@@ -86,11 +120,11 @@ class Node():
         Returns:
             LISP string representation of the tree
         """
-        return self.name + "(" + "".join([str(i) + ", " if isinstance(i, Node) else i + ", " for i in self.args])[:-2] + ")"
+        return self.name + "(" + "".join([str(i) + ", " for i in self.args])[:-2] + ")"
 
 class TerminalNode(Node):
-    def __init__(self, name, args, id_list, output_type, generator, static, input_types=None):
-        super().__init__(name, args, id_list, output_type, input_types)
+    def __init__(self, name, args, node_id, id_list, x_list, output_type, generator, static, input_types=None):
+        super().__init__(name, args, node_id, id_list, x_list, output_type, input_types)
 
         # String of the terminal value
         # This should be a python primitive (float, int, str, list, etc ...)
@@ -158,9 +192,15 @@ def generate(primitive_set, terminal_set, depth, output_types, node_id):
             # Select a random primitive with the correct output type
             primitive = random.choice(primitive_set.node_set[output_type])
 
+            # Create current node_id
+            curr_node_id = node_id + str(id_counter)
+
             # Keeps track of the terminal node ids
             # Starts with the node id of the parent
-            node_ids = [node_id + str(id_counter)]
+            node_ids = [curr_node_id]
+
+            # Keep track of "x" input Terminals
+            x_list = []
 
             # Set the leaf nodes to be Terminal Nodes
             term_args = []
@@ -168,17 +208,27 @@ def generate(primitive_set, terminal_set, depth, output_types, node_id):
             for input_type in primitive["input_types"]:
                 # Choose a random terminal with the correct output type
                 terminal = random.choice(terminal_set.node_set[input_type])
+
+                # Calculate node id of this Terminal
+                term_node_id = curr_node_id + str(id_counter_term)
+
+                # Pass node_id of this Terminal if input_type is x
+                x_list_temp = [term_node_id] if input_type == "x" else []
+
                 # Create a new TerminalNode
                 term_args.append(TerminalNode(terminal["name"], 
-                                         [], [node_id + str(id_counter) + str(id_counter_term)], 
+                                         [], term_node_id, [term_node_id], x_list_temp,
                                          input_type, terminal["generator"], terminal["static"]))
                 # Add terminal node id to the node id list
-                node_ids.append(node_id + str(id_counter) + str(id_counter_term))
+                node_ids.append(term_node_id)
+                # Add terminal x_list to the parent's x_list
+                x_list += x_list_temp
                 # Increment terminal id counter so each terminal will have a different id
                 id_counter_term += 1
 
             # Create the Node and add it to the list of children
-            nodes.append(Node(primitive["name"], term_args, node_ids, output_type, primitive["input_types"]))
+            nodes.append(Node(primitive["name"], term_args, curr_node_id, 
+                              node_ids, x_list, output_type, primitive["input_types"]))
 
             # Increment id counter so each child will have a different id
             id_counter += 1
@@ -190,24 +240,32 @@ def generate(primitive_set, terminal_set, depth, output_types, node_id):
         # Select a random primitive with the correct output type
         primitive = random.choice(primitive_set.node_set[output_type])
 
+        # Create current node_id
+        curr_node_id = node_id + str(id_counter)
+
         # Generate children nodes
         # One for each input type
-        p_nodes = generate(primitive_set, terminal_set, depth-1, primitive["input_types"], node_id + str(id_counter))
+        p_nodes = generate(primitive_set, terminal_set, depth-1, primitive["input_types"], curr_node_id)
 
         # Create full list of ids by combining the id lists of the children
-        id_list = [node_id + str(id_counter)]
+        id_list = [curr_node_id]
         for node in p_nodes:
             id_list += node.get_id_list()
         
+        # Combine x_list of children
+        x_list = []
+        for node in p_nodes:
+            x_list += node.get_x_list()
+        
         # Create the Node and add it to the list of children
-        nodes.append(Node(primitive["name"], p_nodes, id_list, output_type, primitive["input_types"]))
+        nodes.append(Node(primitive["name"], p_nodes, curr_node_id, id_list, x_list, output_type, primitive["input_types"]))
 
         # Increment id counter so each child will have a different id
         id_counter += 1
 
     return nodes
 
-def generate_tree(primitive_set, terminal_set, depth=1):
+def generate_tree(primitive_set, terminal_set, depth=1, ):
     """
     Randomly generate a single tree
     Assume every primitive can be used as an output (symbolic regression)
@@ -246,6 +304,10 @@ def apply_at_node(modifier, primitive_set, terminal_set, tree, node_id):
         # Apply the modification
         tree = modifier(primitive_set, terminal_set, tree)
 
+        # Update the id_list and x_list of the tree
+        tree.update_id_list()
+        tree.update_x_list()
+
         # Return the modified tree node
         return tree
 
@@ -261,5 +323,9 @@ def apply_at_node(modifier, primitive_set, terminal_set, tree, node_id):
 
     # Set the correct child to be the result of the recursion
     tree.args[node_index] = apply_at_node(modifier, primitive_set, terminal_set, tree.args[node_index], next_id)
+
+    # Update the id_list and x_list of the tree
+    tree.update_id_list()
+    tree.update_x_list()
 
     return tree

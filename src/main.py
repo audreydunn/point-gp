@@ -1,5 +1,5 @@
 from node_set import PrimitiveSet, TerminalSet
-from mutation import mutate, mutate_replace
+from mutation import mutate, mutate_replace, mutate_insert
 from tree import generate_tree
 import numpy as np
 import random
@@ -43,6 +43,7 @@ if __name__ == '__main__':
     print("Unique Node IDs:\n{}\n".format(node_ids))
     print("Number of Unique Node IDs:\n{}\n".format(len(node_ids)))
     print("Tree Size (Number of Nodes):\n{}\n".format(tree.size()))
+    print("X Input Node IDs:\n{}\n".format(tree.get_x_list()))
 
     # Generate function pointer for the tree
     func = tree.get_func(primitive_set.function_pointers)
@@ -51,14 +52,26 @@ if __name__ == '__main__':
     x = np.array([4.6, 7.3, 9.5])
     print("Tree Output:\n{}\n".format(func(x)))
 
-    # Perform mutation on the tree
+    # Perform mutate replace on the tree
     tree = mutate(mutate_replace, primitive_set, terminal_set, tree)
 
     # Print new tree
-    print("Mutated Tree String:\n{}\n".format(str(tree)))
-    print("Mutated Tree Size (Number of Nodes):\n{}\n".format(tree.size()))
+    print("Mutate Replace Tree String:\n{}\n".format(str(tree)))
+    print("Mutate Replace Tree Size (Number of Nodes):\n{}\n".format(tree.size()))
 
     # Re-evaluate the tree after the mutation
     func = tree.get_func(primitive_set.function_pointers)
     x = np.array([4.6, 7.3, 9.5])
-    print("Mutated sTree Output:\n{}\n".format(func(x)))
+    print("Mutate Replace Tree Output:\n{}\n".format(func(x)))
+
+    # Perform mutate replace on the tree
+    tree = mutate(mutate_insert, primitive_set, terminal_set, tree, use_x_list=True)
+
+    # Print new tree
+    print("Mutate Insert Tree String:\n{}\n".format(str(tree)))
+    print("Mutate Insert Tree Size (Number of Nodes):\n{}\n".format(tree.size()))
+
+    # Re-evaluate the tree after the mutation
+    func = tree.get_func(primitive_set.function_pointers)
+    x = np.array([4.6, 7.3, 9.5])
+    print("Mutate Insert Tree Output:\n{}\n".format(func(x)))
