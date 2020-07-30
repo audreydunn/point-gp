@@ -135,8 +135,11 @@ def mutate_insert(primitive_set, terminal_set, tree):
 def mutate_shrink(primitive_set, terminal_set, tree):
     """
     Randomly selects a node in the tree
-    and removes it
-    Node is replaced with one of its children
+    and replaces the entire subtree
+    with a terminal of the same output type
+
+    TODO: Make a variation of this that replaces the node
+    with its real output value instead
 
     Args:
         primitive_set: dictionary where (key, value) is (output_type, [{"name", "input_types", "group"}, ...])
@@ -146,4 +149,13 @@ def mutate_shrink(primitive_set, terminal_set, tree):
     Returns:
         Node containing full tree
     """
-    pass
+    # Choose a random terminal with the same output type as tree
+    terminal = random.choice(terminal_set.node_set[tree.output_type])
+
+    # Pass node_id of this Terminal if input_type is x
+    x_list = [tree.node_id] if tree.output_type == "x" else []
+
+    # Create a new TerminalNode
+    return TerminalNode(terminal["name"], 
+                        [], tree.node_id, [tree.node_id], x_list,
+                        tree.output_type, terminal["generator"], terminal["static"])

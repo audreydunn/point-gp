@@ -1,6 +1,7 @@
+from mutation import mutate, mutate_replace, mutate_insert, mutate_shrink
 from node_set import PrimitiveSet, TerminalSet
-from mutation import mutate, mutate_replace, mutate_insert
 from tree import generate_tree
+from copy import deepcopy
 import numpy as np
 import random
 
@@ -53,25 +54,37 @@ if __name__ == '__main__':
     print("Tree Output:\n{}\n".format(func(x)))
 
     # Perform mutate replace on the tree
-    tree = mutate(mutate_replace, primitive_set, terminal_set, tree)
+    new_tree = mutate(mutate_replace, primitive_set, terminal_set, deepcopy(tree))
 
     # Print new tree
-    print("Mutate Replace Tree String:\n{}\n".format(str(tree)))
-    print("Mutate Replace Tree Size (Number of Nodes):\n{}\n".format(tree.size()))
+    print("Mutate Replace Tree String:\n{}\n".format(str(new_tree)))
+    print("Mutate Replace Tree Size (Number of Nodes):\n{}\n".format(new_tree.size()))
 
     # Re-evaluate the tree after the mutation
-    func = tree.get_func(primitive_set.function_pointers)
+    func = new_tree.get_func(primitive_set.function_pointers)
     x = np.array([4.6, 7.3, 9.5])
     print("Mutate Replace Tree Output:\n{}\n".format(func(x)))
 
     # Perform mutate replace on the tree
-    tree = mutate(mutate_insert, primitive_set, terminal_set, tree, use_x_list=True)
+    new_tree = mutate(mutate_insert, primitive_set, terminal_set, deepcopy(tree), use_x_list=True)
 
     # Print new tree
-    print("Mutate Insert Tree String:\n{}\n".format(str(tree)))
-    print("Mutate Insert Tree Size (Number of Nodes):\n{}\n".format(tree.size()))
+    print("Mutate Insert Tree String:\n{}\n".format(str(new_tree)))
+    print("Mutate Insert Tree Size (Number of Nodes):\n{}\n".format(new_tree.size()))
 
     # Re-evaluate the tree after the mutation
-    func = tree.get_func(primitive_set.function_pointers)
+    func = new_tree.get_func(primitive_set.function_pointers)
     x = np.array([4.6, 7.3, 9.5])
     print("Mutate Insert Tree Output:\n{}\n".format(func(x)))
+
+    # Perform mutate shrink on the tree
+    new_tree = mutate(mutate_shrink, primitive_set, terminal_set, deepcopy(tree))
+
+    # Print new tree
+    print("Mutate Shrink Tree String:\n{}\n".format(str(new_tree)))
+    print("Mutate Shrink Tree Size (Number of Nodes):\n{}\n".format(new_tree.size()))
+
+    # Re-evaluate the tree after the mutation
+    func = new_tree.get_func(primitive_set.function_pointers)
+    x = np.array([4.6, 7.3, 9.5])
+    print("Mutate Shrink Tree Output:\n{}\n".format(func(x)))
