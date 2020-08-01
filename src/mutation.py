@@ -1,9 +1,12 @@
+"""
+This file contains mutation functions
+"""
 from tree import apply_at_node, TerminalNode, generate
 import random
 
-def mutate(mutation, primitive_set, terminal_set, tree, use_x_list=False):
+def mutate(mutation, primitive_set, terminal_set, tree, use_input_ids=False):
     """
-    TODO: Find a better way to implement use_x_list
+    TODO: Find a better way to implement use_input_ids
     Applies a mutation to the tree
 
     Args:
@@ -16,7 +19,7 @@ def mutate(mutation, primitive_set, terminal_set, tree, use_x_list=False):
         Node containing full tree
     """
     # Randomly choose a node
-    node_id = random.choice(tree.get_x_list()) if use_x_list else random.choice(tree.get_id_list())
+    node_id = random.choice(tree.get_input_ids()) if use_input_ids else random.choice(tree.get_tree_ids())
 
     # Take off root id
     node_id = node_id[1:]
@@ -106,14 +109,14 @@ def cleanup_mutated_node_ids(tree):
         # Remove second to last character
         tree.args[i].node_id = tree.args[i].node_id[:-2] + tree.args[i].node_id[-1]
         # Update child id lists
-        tree.args[i].update_id_list()
-        # Update x_list if output type is "x"
+        tree.args[i].update_tree_ids()
+        # Update input_ids if output type is "x"
         if tree.args[i].output_type == "x":
-            tree.args[i].x_list = tree.args[i].id_list
+            tree.args[i].input_ids = [tree.args[i].node_id]
 
     # Update parent id lists
-    tree.update_id_list()
-    tree.update_x_list()
+    tree.update_tree_ids()
+    tree.update_input_ids()
 
     return tree
 
@@ -153,9 +156,9 @@ def mutate_shrink(primitive_set, terminal_set, tree):
     terminal = random.choice(terminal_set.node_set[tree.output_type])
 
     # Pass node_id of this Terminal if input_type is x
-    x_list = [tree.node_id] if tree.output_type == "x" else []
+    input_ids = [tree.node_id] if tree.output_type == "x" else []
 
     # Create a new TerminalNode
     return TerminalNode(terminal["name"], 
-                        [], tree.node_id, [tree.node_id], x_list,
+                        [], tree.node_id, {tree.node_id:tree.output_type}, input_ids,
                         tree.output_type, terminal["generator"], terminal["static"])
