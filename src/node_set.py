@@ -10,6 +10,22 @@ class NodeSet():
         self.node_set = {}
         self.function_pointers = {}
 
+    def struct_by_name(self):
+        """
+        Restructures node_set to make "name" the main key
+        Copies over the remaining key->value pairs
+        """
+        new_dict = {}
+        for output_type in self.node_set:
+            # Set the new key to be the name and store the output_type
+            new_dict[self.node_set[output_type]["name"]] = {"output_type":output_type}
+            # Copy the remaining key->value pairs
+            for key in self.node_set[output_type]:
+                if key != "name":
+                    new_dict[self.node_set[output_type]["name"]][key] = self.node_set[output_type][key]
+
+        return new_dict
+
     def __add__(self, other):
         """
         Addtion operator for adding node_sets
