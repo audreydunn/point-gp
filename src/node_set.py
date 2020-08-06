@@ -17,12 +17,13 @@ class NodeSet():
         """
         new_dict = {}
         for output_type in self.node_set:
-            # Set the new key to be the name and store the output_type
-            new_dict[self.node_set[output_type]["name"]] = {"output_type":output_type}
-            # Copy the remaining key->value pairs
-            for key in self.node_set[output_type]:
-                if key != "name":
-                    new_dict[self.node_set[output_type]["name"]][key] = self.node_set[output_type][key]
+            for i in range(len(self.node_set[output_type])):
+                # Set the new key to be the name and store the output_type
+                new_dict[self.node_set[output_type][i]["name"]] = {"output_type":output_type}
+                # Copy the remaining key->value pairs
+                for key in self.node_set[output_type][i]:
+                    if key != "name":
+                        new_dict[self.node_set[output_type][i]["name"]][key] = self.node_set[output_type][i][key]
 
         return new_dict
 
@@ -150,6 +151,10 @@ class TerminalSet(NodeSet):
         if output_type not in self.node_set:
             # Create output_type list
             self.node_set[output_type] = []
+
+        # Set terminal name to point to a lambda function that returns its value
+        # If a terminal wrapper is implemented, then this code needs to be modified
+        self.function_pointers[name] = lambda value: value
         
         # Add the terminal information
         self.node_set[output_type].append({"name": name, "generator": generator, "static": static})

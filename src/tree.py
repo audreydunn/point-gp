@@ -6,6 +6,7 @@ Tree gets compiled top down
 TODO: Make node_id list recursive
 """
 import random
+import ast
 
 class Node():
     def __init__(self, name, args, node_id, tree_ids, input_ids, output_type, input_types):
@@ -151,14 +152,17 @@ class Node():
         return self.name + "(" + "".join([str(i) + ", " for i in self.args])[:-2] + ")"
 
 class TerminalNode(Node):
-    def __init__(self, name, args, node_id, tree_ids, input_ids, output_type, generator, static, input_types=None):
+    def __init__(self, name, args, node_id, tree_ids, input_ids, output_type, generator, static, input_types=None, value=None):
         super().__init__(name, args, node_id, tree_ids, input_ids, output_type, input_types)
 
         # String of the terminal value
         # This should be a python primitive (float, int, str, list, etc ...)
         # We store this as a string in memory to reduce memory usage
         # The value can always be cast into its original type
-        self.value = str(generator())
+        if value is None:
+            self.value = str(generator())
+        else:
+            self.value = value
 
         # Save function reference for regenerating terminal value
         self.generator = generator
@@ -193,7 +197,7 @@ class TerminalNode(Node):
         Returns:
             string representation of terminal value
         """
-        return self.value
+        return "{}({})".format(self.name, self.value)
 
 def generate(primitive_set, terminal_set, depth, output_types, node_id):
     """
@@ -293,7 +297,7 @@ def generate(primitive_set, terminal_set, depth, output_types, node_id):
 
     return nodes
 
-def generate_tree(primitive_set, terminal_set, depth=1, ):
+def generate_tree(primitive_set, terminal_set, depth=1):
     """
     Randomly generate a single tree
     Assume every primitive can be used as an output (symbolic regression)
@@ -362,9 +366,6 @@ def find_subtree(tree, node_id):
     Then return the node
 
     Args:
-        modifier: callable function that modifies a Node
-        primitive_set: dictionary where (key, value) is (output_type, [{"name", "input_types", "group"}, ...])
-        terminal_set:  dictionary where (key, value) is (output_type, [{"name", "generator", "static"}, ...])
         tree: Node containing full tree
         node_id: string id directing which nodes to traverse
 
@@ -386,3 +387,150 @@ def find_subtree(tree, node_id):
 
     # Return the recursive call
     return find_subtree(tree.args[node_index], next_id)
+
+def parse_tree(line, pset, tset):
+    """
+    Parses the string of a tree
+    Creates nodes from the string parsing
+
+    Args:
+        line (string): string of the tree
+        pset: dictionary where (key, value) is (name, [{"output_type", "input_types", "group"}, ...])
+        tset:  dictionary where (key, value) is (name, [{"output_type", "generator", "static"}, ...])
+  
+    Returns:
+        Node containing full tree
+    """
+    # Controls main while loop
+    parse = True
+    # Stack used to keep track of created nodes
+    node_stack = []
+    # Stack of characters used to store node names
+    node = ""
+    # Current index of the character being looked at in line
+    i = 0
+    # Boolean for whether the last character check wass "(" or ")"
+    closed = 0
+
+    # Parse string until end of the tree is reached
+    while parse:
+
+        # Check for end of node
+        if line[i] == ")":
+            # Indicate last check was closed paranthesis
+            closed = 1
+
+            # Pop the stack until the item is not a Node
+            pop = True
+            children = []
+            while pop:
+                item = node_stack.pop()
+                if isinstance(item, Node):
+                    children.append(item)
+                else:
+                    name, stored_id, is_terminal = item
+                    pop = False
+
+            # Reverse children to make sure order matches original string
+            children.reverse()
+
+            if is_terminal:
+                # Pass node_id of this Terminal if input_type is x
+                input_ids = [stored_id] if tset[name]["output_type"] == "x" else []
+
+                # Determine the value of the terminal
+                value = "x"
+                if node != "x":
+                    # Assume the node is a literal (float, int, string, list, dict, etc.)
+                    try:
+                        value = ast.literal_eval(node)
+                    except:
+                        raise ValueError("Terminal value: {} Is not a Python literal".format(node))
+
+                # Create TerminalNode and add it to node_stack
+                node_stack.append(TerminalNode(name, [], stored_id, {stored_id:tset[name]["output_type"]}, input_ids,
+                                         tset[name]["output_type"], tset[name]["generator"], tset[name]["static"], value=value))
+
+            else:
+                # Create full list of ids by combining the id lists of the children
+                tree_ids = {stored_id:pset[name]["output_type"]}
+                for node in children:
+                    tree_ids.update(node.get_id_outputs())
+                
+                # Combine input_ids of children
+                input_ids = []
+                for node in children:
+                    input_ids += node.get_input_ids()
+                
+                # Create the Node and add it to the list of children
+                node_stack.append(Node(name, children, stored_id, tree_ids, input_ids, pset[name]["output_type"], pset[name]["input_types"]))
+
+            # End of the tree
+            if i == len(line) - 1:
+                # Exit the while loop and return
+                parse = False
+                continue
+
+            # Skip over " " and "," after returning the recursive call
+            # This prevents checking the next string too early
+            x = 0
+            while (i+x+1 < len(line)) and (line[i+x+1] == " " or line[i+x+1] == ","):
+                x += 1
+            i += x
+
+            # Reset node to empty string
+            # At this point we no longer need the old string because it's already parsed
+            node = ""
+
+        # Check for start of node
+        elif line[i] == "(":
+            # Calculate new node_id
+            if len(node_stack) == 0:
+                node_id = "0"
+            else:
+                # Get last node id in stack
+                last_node = node_stack[-1]
+                if isinstance(last_node, Node):
+                    stored_id = last_node.node_id
+                else:
+                    name, stored_id, is_terminal = last_node
+
+                if closed:
+                    # Increment last node id by 1
+                    node_id = stored_id[:-1] + str(int(stored_id[-1]) + 1)
+                else:
+                    # Extend last node id
+                    node_id = stored_id + "0"
+
+            if node in pset:
+                # Add Primitive to node_stack since we're done parsing it
+                node_stack.append((node, node_id, False))
+            elif node in tset:
+                # Add Primitive to node_stack since we're done parsing it
+                node_stack.append((node, node_id, True))
+            else:
+                raise Exception("Node name: {} is not in PrimitiveSet or TerminalSet".format(node))
+            
+            # Skip over " " and "," after returning the recursive call
+            # This prevents checking the next string too early
+            x = 0
+            while (i+x+1 < len(line)) and (line[i+x+1] == " " or line[i+x+1] == ","):
+                x += 1
+            i += x
+
+            # Reset node to empty string
+            # At this point we no longer need the old string because it's already parsed
+            node = ""
+
+            # Indicate last check was open paranthesis
+            closed = 0
+
+        else:
+            # Add the char to node string
+            node += line[i]
+   
+        # Move to next character in line
+        i += 1
+    
+    # Return the root node
+    return node_stack.pop()

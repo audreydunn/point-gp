@@ -1,7 +1,7 @@
 from mutation import mutate, mutate_replace, mutate_insert, mutate_shrink
 from node_set import PrimitiveSet, TerminalSet
+from tree import generate_tree, parse_tree
 from crossover import one_point_crossover
-from tree import generate_tree
 from copy import deepcopy
 import numpy as np
 import random
@@ -36,8 +36,8 @@ if __name__ == '__main__':
     # Generators are functions which will be called when the node is generated
     # The string of the tree will then have the precomputed value
     terminal_set = TerminalSet()
-    terminal_set.add_terminal("float", "uniform[0,1]", random.random, True)
-    terminal_set.add_terminal("x", "original_input", lambda: "x", True)
+    terminal_set.add_terminal("float", "uniform_0_1", random.random, True)
+    terminal_set.add_terminal("x", "pass_x", lambda: "x", True)
 
     tree = generate_tree(primitive_set, terminal_set, depth=4)
     print("Tree String:\n{}\n".format(str(tree)))
@@ -47,8 +47,12 @@ if __name__ == '__main__':
     print("Tree Size (Number of Nodes):\n{}\n".format(tree.size()))
     print("X Input Node IDs:\n{}\n".format(tree.get_input_ids()))
 
+    # Combine function_pointers of primitive_set and terminal_sets
+    function_pointers = primitive_set.function_pointers
+    function_pointers.update(terminal_set.function_pointers)
+
     # Generate function pointer for the tree
-    func = tree.get_func(primitive_set.function_pointers)
+    func = tree.get_func(function_pointers)
 
     # Evaluate Tree
     x = np.array([4.6, 7.3, 9.5])
@@ -106,3 +110,20 @@ if __name__ == '__main__':
     func = new_tree.get_func(primitive_set.function_pointers)
     x = np.array([4.6, 7.3, 9.5])
     print("One-Point Crossover Tree Output:\n{}\n".format(func(x)))
+
+    # Test parse_tree on the original tree string
+    print("String to parse:\n{}\n".format(tree))
+    parsed_tree = parse_tree(str(deepcopy(tree)), primitive_set.struct_by_name(), terminal_set.struct_by_name())
+    print("Parsed Tree String:\n{}\n".format(str(parsed_tree)))
+    node_ids = parsed_tree.get_tree_ids()
+    print("Unique Node IDs:\n{}\n".format(node_ids))
+    print("Number of Unique Node IDs:\n{}\n".format(len(node_ids)))
+    print("Tree Size (Number of Nodes):\n{}\n".format(parsed_tree.size()))
+    print("X Input Node IDs:\n{}\n".format(parsed_tree.get_input_ids()))
+
+    # Generate function pointer for the tree
+    func = parsed_tree.get_func(function_pointers)
+
+    # Evaluate Tree
+    x = np.array([4.6, 7.3, 9.5])
+    print("Tree Output:\n{}\n".format(func(x)))
