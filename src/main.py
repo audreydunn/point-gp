@@ -98,7 +98,7 @@ if __name__ == '__main__':
     second_tree = generate_tree(primitive_set, terminal_set, depth=4)
 
     # Perform one point crossover
-    new_tree = one_point_crossover(primitive_set, terminal_set, deepcopy(tree), deepcopy(second_tree))
+    new_tree, new_tree_2 = one_point_crossover(primitive_set, terminal_set, deepcopy(tree), deepcopy(second_tree))
 
     # Print new tree
     print("One-Point Crossover Tree String:\n{}\n".format(str(new_tree)))

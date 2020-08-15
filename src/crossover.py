@@ -58,8 +58,8 @@ def find_valid_nodes(node_ids, tree_1, tree_2):
     # Take off root id
     node_id = node_id[1:]
 
-    # Get subtree object
-    subtree = find_subtree(tree_1, node_id)
+    # Get subtree object from tree_1
+    subtree_1 = find_subtree(tree_1, node_id)
 
     # Randomly choose a node in the second
     valid_node_id = random.choice(valid_node_ids)
@@ -67,7 +67,10 @@ def find_valid_nodes(node_ids, tree_1, tree_2):
     # Take off root id
     valid_node_id = valid_node_id[1:]
 
-    return subtree, valid_node_id
+    # Get subtree object from tree_2
+    subtree_2 = find_subtree(tree_2, valid_node_id)
+
+    return subtree_1, valid_node_id, subtree_2, node_id
 
 def one_point_crossover(primitive_set, terminal_set, tree_1, tree_2):
     """
@@ -84,8 +87,8 @@ def one_point_crossover(primitive_set, terminal_set, tree_1, tree_2):
         Node containing full tree
     """
     # Find a random subtree of the first tree AND a valid node id of the second tree
-    subtree, valid_node_id = find_valid_nodes(tree_1.get_tree_ids(), tree_1, tree_2)
+    subtree_1, node_id_1, subtree_2, node_id_2 = find_valid_nodes(tree_1.get_tree_ids(), tree_1, tree_2)
 
     # Recurse through the tree until the node is found
     # Then apply the crossover
-    return apply_at_node(partial(swap_subtree, subtree), primitive_set, terminal_set, tree_2, valid_node_id)
+    return apply_at_node(partial(swap_subtree, subtree_1), primitive_set, terminal_set, tree_2, node_id_1), apply_at_node(partial(swap_subtree, subtree_2), primitive_set, terminal_set, tree_1, node_id_2)
