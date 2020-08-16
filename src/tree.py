@@ -101,9 +101,11 @@ class Node():
         """
         Updates input_ids by adding together the input_ids of every child
         """
-        self.input_ids = []
-        for i in self.args:
-            self.input_ids += i.get_input_ids()
+        # Only update if the node is not a TerminalNode
+        if len(self.args) != 0:
+            self.input_ids = []
+            for i in self.args:
+                self.input_ids += i.get_input_ids()
 
     def regenerate_node_ids(self, node_id, position):
         """
@@ -117,6 +119,10 @@ class Node():
         self.node_id = node_id + position
         for i, node in enumerate(self.args):
             node.regenerate_node_ids(self.node_id, str(i))
+
+        # If terminal with output_type x
+        if len(self.args) == 0 and self.output_type == "x":
+            self.input_ids = [self.node_id]
 
     def size(self):
         """
