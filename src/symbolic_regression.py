@@ -1,8 +1,8 @@
 
 from mutation import mutate, mutate_replace, mutate_insert, mutate_shrink
 from node_set import PrimitiveSet, TerminalSet
+from tree import generate_tree, parse_tree
 from crossover import one_point_crossover
-from tree import generate_tree
 from functools import partial
 from copy import deepcopy
 import multiprocess
@@ -30,20 +30,23 @@ POP_SIZE = 600
 NGEN = 100
 
 # Mutation probability
-MUTPB = 0.2
+MUTPB = 0.25
 
 # Crossover probability
-CXPB = 0.5
+CXPB = 0.96
+
+SEED = "add_x_x(div_x_float(mult_x_x(sub_x_float(sub_x_float(pass_x(x), uniform_5_5(0.3330847400917083)), uniform_5_5(4.762321841272186)), mult_x_x(pass_x(x), pass_x(x))), tan_float(add_float_float(pass_2(2.0), pass_1(1.0)))), div_x_float(sin_x(pass_x(x)), div_float_float(cos_float(pass_2(2.0)), mult_float_float(uniform_5_5(4.709478895399462), uniform_5_5(-3.7382713053737957)))))"
+
+SEED2 = "add_x_x(sub_x_x(sub_x_float(div_x_float(add_x_x(mult_x_x(mult_x_float(pass_x(x), uniform_5_5(4.762321841272186)), sub_x_float(pass_x(x), uniform_5_5(4.762321841272186))), mult_x_float(mult_x_float(cos_x(mult_x_float(pass_x(x), uniform_5_5(4.762321841272186))), pass_3(3.0)), uniform_5_5(4.762321841272186))), pass_2(2.0)), sin_float(pass_1(1.0))), tan_x(mult_x_float(div_x_float(pass_x(x), pass_2(2.0)), pass_3(3.0)))), div_x_x(mult_x_x(add_x_float(pass_x(x), uniform_5_5(1.7955839820267636)), add_x_x(tan_x(tan_x(pass_x(x))), pass_x(x))), div_x_float(exp_x(pass_x(x)), pass_2(2.0))))"
 
 # x^4 + x^3 + x^2 + x
 def polynomial(x):
     return np.power(x, 4) + np.power(x, 3) + np.power(x, 2) + x
 
-def evaluate(function_pointers, individual, x, y):
-    # Set random seed
-    random.seed(101)
-    np.random.seed(101)
+def polynomial2(x):
+    return np.exp(-1.0 * (np.sin(3 * x) + (2 * x)))
 
+def evaluate(function_pointers, individual, x, y):
     # Generate function pointer for the tree
     func = individual[0].get_func(function_pointers)
 
@@ -79,11 +82,12 @@ def mutate_pop(individual, mutpb, primitive_set, terminal_set):
 def crossover_pop(individual_1, individual_2, cxpb):
     offspring = []
 
-    # One-point crossover
-    if random.random() < cxpb:
-        new_tree, new_tree_2 = one_point_crossover(primitive_set, terminal_set, deepcopy(individual_1[0]), deepcopy(individual_2[0]))
-        # offspring += [(new_tree, None), (new_tree_2, None)]
-        offspring += [(new_tree, None)]
+    # # One-point crossover
+    # if random.random() < cxpb:
+
+    new_tree, new_tree_2 = one_point_crossover(primitive_set, terminal_set, deepcopy(individual_1[0]), deepcopy(individual_2[0]))
+    offspring += [(new_tree, None)]
+    # offspring += [(new_tree, None), (new_tree_2, None)]
 
     return offspring
 
@@ -121,11 +125,20 @@ if __name__ == '__main__':
     primitive_set.add_primitive(np.log, "x", "log_x", ["x"], "operators")
     primitive_set.add_primitive(np.log, "float", "log_float", ["float"], "operators")
 
+    primitive_set.add_primitive(np.sqrt, "x", "sqrt_x", ["x"], "operators")
+    primitive_set.add_primitive(np.sqrt, "float", "sqrt_float", ["float"], "operators")
+
+    primitive_set.add_primitive(np.exp, "x", "exp_x", ["x"], "operators")
+    primitive_set.add_primitive(np.exp, "float", "exp_float", ["float"], "operators")
+
     # Create Terminal Set
     terminal_set = TerminalSet()
 
     # Add Terminals
     terminal_set.add_terminal("float", "uniform_5_5", partial(random.uniform, -5, 5), True)
+    terminal_set.add_terminal("float", "pass_1", lambda: 1.0, True)
+    terminal_set.add_terminal("float", "pass_2", lambda: 2.0, True)
+    terminal_set.add_terminal("float", "pass_3", lambda: 3.0, True)
     terminal_set.add_terminal("x", "pass_x", lambda: "x", True)
 
     # Combine function_pointers of primitive_set and terminal_sets
@@ -138,12 +151,16 @@ if __name__ == '__main__':
     for i in range(POP_SIZE):
         population.append((generate_tree(primitive_set, terminal_set, depth=4), None))
 
+    # seed = (parse_tree(SEED2, primitive_set.struct_by_name(), terminal_set.struct_by_name()), None)
+
+    # population.append(seed)
+
     x = []
     y = []
     # Randomly generate 20 points from the polynomial
     for i in range(20):
         x.append(random.uniform(-5, 5))
-        y.append(polynomial(x[-1]))
+        y.append(polynomial2(x[-1]))
     x = np.array(x)
     y = np.array(y)
 
@@ -170,12 +187,23 @@ if __name__ == '__main__':
         offspring = []
 
         # Mutate elite pool
-        new_individuals = pool.starmap_async(mutate_pop, [(individual, MUTPB, primitive_set, terminal_set) for individual in population]).get()
+        for individual in population:
+            offspring += mutate_pop(individual, MUTPB, primitive_set, terminal_set)
 
         # Crossover elite pool
-        new_individuals = pool.starmap_async(mutate_pop, [(individual, CXPB, primitive_set, terminal_set) for individual in population]).get()
-        for i in new_individuals:
-            offspring += i
+        for individual_1 in population:
+            if random.random() < CXPB:
+                offspring += crossover_pop(individual_1, random.choice(population), CXPB)
+
+        # # Mutate elite pool
+        # new_individuals = pool.starmap_async(mutate_pop, [(individual, MUTPB, primitive_set, terminal_set) for individual in population]).get()
+        # for i in new_individuals:
+        #     offspring += i
+
+        # # Crossover elite pool
+        # new_individuals = pool.starmap_async(crossover_pop, [(individual, CXPB, primitive_set, terminal_set) for individual in population]).get()
+        # for i in new_individuals:
+        #     offspring += i
 
         print("Number of offspring:", len(offspring))
 

@@ -117,12 +117,22 @@ class Node():
             position: string corresponding to the position of the node under the root
         """
         self.node_id = node_id + position
-        for i, node in enumerate(self.args):
-            node.regenerate_node_ids(self.node_id, str(i))
+        self.tree_ids = [self.node_id]
+        self.id_outputs = {self.node_id:self.output_type}
 
         # If terminal with output_type x
         if len(self.args) == 0 and self.output_type == "x":
             self.input_ids = [self.node_id]
+        else:
+            self.input_ids = []
+
+            for i, node in enumerate(self.args):
+                i_ids, t_ids, id_outputs = node.regenerate_node_ids(self.node_id, str(i))
+                self.tree_ids += t_ids
+                self.input_ids += i_ids
+                self.id_outputs.update(id_outputs)
+
+        return self.input_ids, self.tree_ids, self.id_outputs
 
     def size(self):
         """

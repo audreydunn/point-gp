@@ -19,9 +19,8 @@ def swap_subtree(subtree, primitive_set, terminal_set, tree):
     # Note: Regenerating the node ids is inefficient here, but improves performance of finding nodes
     # Regenerate node ids of the new subtree given the node id of the original tree
     subtree.regenerate_node_ids(tree.node_id, "")
-    # Update relevant node id data structures
-    subtree.update_tree_ids()
-    subtree.update_input_ids()
+
+    # Return updated subtree
     return subtree
 
 def find_valid_nodes(node_ids, tree_1, tree_2):
