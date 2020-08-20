@@ -105,6 +105,7 @@ if __name__ == '__main__':
     print("One-Point Crossover Tree Size (Number of Nodes):\n{}\n".format(new_tree.size()))
     print("Crossover Tree Node IDs:\n{}\n".format(new_tree.get_tree_ids()))
     print("Crossover Tree Number of Unique Node IDs:\n{}\n".format(len(new_tree.get_tree_ids())))
+    print("Crossover Tree Input IDs:\n{}\n".format(new_tree.get_input_ids()))
 
     # Re-evaluate the tree after the mutation
     func = new_tree.get_func(primitive_set.function_pointers)

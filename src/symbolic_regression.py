@@ -82,12 +82,11 @@ def mutate_pop(individual, mutpb, primitive_set, terminal_set):
 def crossover_pop(individual_1, individual_2, cxpb):
     offspring = []
 
-    # # One-point crossover
-    # if random.random() < cxpb:
-
+    # One-point crossover
     new_tree, new_tree_2 = one_point_crossover(primitive_set, terminal_set, deepcopy(individual_1[0]), deepcopy(individual_2[0]))
-    offspring += [(new_tree, None)]
-    # offspring += [(new_tree, None), (new_tree_2, None)]
+
+    # Add both trees to the offspring
+    offspring += [(new_tree, None), (new_tree_2, None)]
 
     return offspring
 

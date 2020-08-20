@@ -1,8 +1,9 @@
 """
 This file contains crossover functions
 """
-from tree import apply_at_node, find_subtree
+from tree import apply_at_node, find_subtree, check_tree_ids
 from functools import partial
+from copy import deepcopy
 import random
 
 def swap_subtree(subtree, primitive_set, terminal_set, tree):
@@ -44,7 +45,7 @@ def find_valid_nodes(node_ids, tree_1, tree_2):
     # Get output_type of the random node in first tree
     output_type = tree_1.get_id_outputs()[node_id]
 
-    # Find a random node in the second tree with the same output type
+    # Find nodes with the same output_type in the second tree
     valid_node_ids = []
     for n in tree_2.get_id_outputs():
         if tree_2.get_id_outputs()[n] == output_type:
@@ -90,4 +91,4 @@ def one_point_crossover(primitive_set, terminal_set, tree_1, tree_2):
 
     # Recurse through the tree until the node is found
     # Then apply the crossover
-    return apply_at_node(partial(swap_subtree, subtree_1), primitive_set, terminal_set, tree_2, node_id_1), apply_at_node(partial(swap_subtree, subtree_2), primitive_set, terminal_set, tree_1, node_id_2)
+    return apply_at_node(partial(swap_subtree, deepcopy(subtree_1)), primitive_set, terminal_set, tree_2, node_id_1), apply_at_node(partial(swap_subtree, deepcopy(subtree_2)), primitive_set, terminal_set, tree_1, node_id_2)

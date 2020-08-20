@@ -352,10 +352,6 @@ def apply_at_node(modifier, primitive_set, terminal_set, tree, node_id):
         # Apply the modification
         tree = modifier(primitive_set, terminal_set, tree)
 
-        # Update the tree_ids and input_ids of the tree
-        tree.update_tree_ids()
-        tree.update_input_ids()
-
         # Return the modified tree node
         return tree
 
@@ -550,3 +546,19 @@ def parse_tree(line, pset, tset):
     
     # Return the root node
     return node_stack.pop()
+
+def check_tree_ids(tree):
+    """
+    Checks to make sure every node id is correct in a tree
+    Used for debugging
+
+    Args:
+        tree: node containing full tree
+  
+    Returns:
+        Node containing full tree
+    """
+    for i, node in enumerate(tree.args):
+        if node.node_id != tree.node_id + str(i):
+            import pdb; pdb.set_trace()
+        check_tree_ids(node)

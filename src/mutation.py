@@ -42,7 +42,7 @@ def mutate_replace(primitive_set, terminal_set, tree):
         tree: Node containing full tree
 
     Returns:
-        Node containing full tree
+        Node containing full tree and False to prevent a second id update
     """
     # Check if we're at a Terminal node
     # Terminal nodes are also leaf nodes
@@ -150,7 +150,7 @@ def mutate_shrink(primitive_set, terminal_set, tree):
         tree: Node containing full tree
 
     Returns:
-        Node containing full tree
+        TerminalNode with the same output as the original tree
     """
     # Choose a random terminal with the same output type as tree
     terminal = random.choice(terminal_set.node_set[tree.output_type])
