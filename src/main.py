@@ -130,17 +130,18 @@ if __name__ == '__main__':
     x = np.array([4.6, 7.3, 9.5])
     print("One-Point Crossover Tree Output:\n{}\n".format(func(x)))
 
-    raise Exception
-
     # Test parse_tree on the original tree string
     print("String to parse:\n{}\n".format(tree))
-    parsed_tree = parse_tree(str(deepcopy(tree)), primitive_set.struct_by_name(), terminal_set.struct_by_name())
+    parsed_tree = parse_tree(str(tree), primitive_set.struct_by_name(), terminal_set.struct_by_name())
     print("Parsed Tree String:\n{}\n".format(str(parsed_tree)))
     node_ids = parsed_tree.get_tree_ids()
     print("Unique Node IDs:\n{}\n".format(node_ids))
     print("Number of Unique Node IDs:\n{}\n".format(len(node_ids)))
     print("Tree Size (Number of Nodes):\n{}\n".format(parsed_tree.size()))
     print("X Input Node IDs:\n{}\n".format(parsed_tree.get_input_ids()))
+
+    # Validate node_ids
+    check_tree_ids(parsed_tree, "0")
 
     # Generate function pointer for the tree
     func = parsed_tree.get_func(function_pointers)

@@ -414,6 +414,8 @@ def parse_tree(line, pset, tset):
     """
     # Controls main while loop
     parse = True
+    # node dictionary used to create the tree
+    nodes = {}
     # Stack used to keep track of created nodes
     node_stack = []
     # Stack of characters used to store node names
@@ -436,7 +438,7 @@ def parse_tree(line, pset, tset):
             children = []
             while pop:
                 item = node_stack.pop()
-                if isinstance(item, Node):
+                if isinstance(item, str):
                     children.append(item)
                 else:
                     name, stored_id, is_terminal = item
@@ -446,9 +448,6 @@ def parse_tree(line, pset, tset):
             children.reverse()
 
             if is_terminal:
-                # Pass node_id of this Terminal if input_type is x
-                input_ids = [stored_id] if tset[name]["output_type"] == "x" else []
-
                 # Determine the value of the terminal
                 value = "x"
                 if node != "x":
@@ -459,22 +458,13 @@ def parse_tree(line, pset, tset):
                         raise ValueError("Terminal value: {} Is not a Python literal".format(node))
 
                 # Create TerminalNode and add it to node_stack
-                node_stack.append(TerminalNode(name, [], stored_id, {stored_id:tset[name]["output_type"]}, input_ids,
-                                         tset[name]["output_type"], tset[name]["generator"], tset[name]["static"], value=value))
+                node_stack.append(stored_id)
+                nodes[stored_id] = TerminalNode(name, [], tset[name]["output_type"], tset[name]["generator"], tset[name]["static"], value=value)
 
             else:
-                # Create full list of ids by combining the id lists of the children
-                tree_ids = {stored_id:pset[name]["output_type"]}
-                for node in children:
-                    tree_ids.update(node.get_id_outputs())
-                
-                # Combine input_ids of children
-                input_ids = []
-                for node in children:
-                    input_ids += node.get_input_ids()
-                
                 # Create the Node and add it to the list of children
-                node_stack.append(Node(name, children, stored_id, tree_ids, input_ids, pset[name]["output_type"], pset[name]["input_types"]))
+                node_stack.append(stored_id)
+                nodes[stored_id] = Node(name, children, pset[name]["output_type"], pset[name]["input_types"])
 
             # End of the tree
             if i == len(line) - 1:
@@ -501,8 +491,8 @@ def parse_tree(line, pset, tset):
             else:
                 # Get last node id in stack
                 last_node = node_stack[-1]
-                if isinstance(last_node, Node):
-                    stored_id = last_node.node_id
+                if isinstance(last_node, str):
+                    stored_id = last_node
                 else:
                     name, stored_id, is_terminal = last_node
 
@@ -544,7 +534,7 @@ def parse_tree(line, pset, tset):
         i += 1
     
     # Return the root node
-    return node_stack.pop()
+    return Tree(nodes)
 
 def check_tree_ids(tree, node_id):
     """
