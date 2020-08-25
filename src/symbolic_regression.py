@@ -8,6 +8,7 @@ from copy import deepcopy
 import multiprocess
 import numpy as np
 import random
+import time
 import sys
 import os
 
@@ -27,7 +28,7 @@ POOL_SIZE = max(2, num_proc - 2)
 POP_SIZE = 600
 
 # Number of generations
-NGEN = 100
+NGEN = 10
 
 # Mutation probability
 MUTPB = 0.25
@@ -91,6 +92,15 @@ def crossover_pop(individual_1, individual_2, cxpb):
     return offspring
 
 if __name__ == '__main__':
+    x = []
+    y = []
+    # Randomly generate 20 points from the polynomial
+    for i in range(20):
+        x.append(random.uniform(-5, 5))
+        y.append(polynomial2(x[-1]))
+    x = np.array(x)
+    y = np.array(y)
+
     # Create Primitive Set
     primitive_set = PrimitiveSet()
     
@@ -112,23 +122,23 @@ if __name__ == '__main__':
     primitive_set.add_primitive(np.multiply, "float", "mult_float_float", ["float", "float"], "operators")
     primitive_set.add_primitive(np.divide, "float", "div_float_float", ["float", "float"], "operators")
 
-    primitive_set.add_primitive(np.sin, "x", "sin_x", ["x"], "operators")
-    primitive_set.add_primitive(np.sin, "float", "sin_float", ["float"], "operators")
+    # primitive_set.add_primitive(np.sin, "x", "sin_x", ["x"], "operators")
+    # primitive_set.add_primitive(np.sin, "float", "sin_float", ["float"], "operators")
 
-    primitive_set.add_primitive(np.cos, "x", "cos_x", ["x"], "operators")
-    primitive_set.add_primitive(np.cos, "float", "cos_float", ["float"], "operators")
+    # primitive_set.add_primitive(np.cos, "x", "cos_x", ["x"], "operators")
+    # primitive_set.add_primitive(np.cos, "float", "cos_float", ["float"], "operators")
 
-    primitive_set.add_primitive(np.tan, "x", "tan_x", ["x"], "operators")
-    primitive_set.add_primitive(np.tan, "float", "tan_float", ["float"], "operators")
+    # primitive_set.add_primitive(np.tan, "x", "tan_x", ["x"], "operators")
+    # primitive_set.add_primitive(np.tan, "float", "tan_float", ["float"], "operators")
 
-    primitive_set.add_primitive(np.log, "x", "log_x", ["x"], "operators")
-    primitive_set.add_primitive(np.log, "float", "log_float", ["float"], "operators")
+    # primitive_set.add_primitive(np.log, "x", "log_x", ["x"], "operators")
+    # primitive_set.add_primitive(np.log, "float", "log_float", ["float"], "operators")
 
-    primitive_set.add_primitive(np.sqrt, "x", "sqrt_x", ["x"], "operators")
-    primitive_set.add_primitive(np.sqrt, "float", "sqrt_float", ["float"], "operators")
+    # primitive_set.add_primitive(np.sqrt, "x", "sqrt_x", ["x"], "operators")
+    # primitive_set.add_primitive(np.sqrt, "float", "sqrt_float", ["float"], "operators")
 
-    primitive_set.add_primitive(np.exp, "x", "exp_x", ["x"], "operators")
-    primitive_set.add_primitive(np.exp, "float", "exp_float", ["float"], "operators")
+    # primitive_set.add_primitive(np.exp, "x", "exp_x", ["x"], "operators")
+    # primitive_set.add_primitive(np.exp, "float", "exp_float", ["float"], "operators")
 
     # Create Terminal Set
     terminal_set = TerminalSet()
@@ -154,18 +164,10 @@ if __name__ == '__main__':
 
     # population.append(seed)
 
-    x = []
-    y = []
-    # Randomly generate 20 points from the polynomial
-    for i in range(20):
-        x.append(random.uniform(-5, 5))
-        y.append(polynomial2(x[-1]))
-    x = np.array(x)
-    y = np.array(y)
-
     # Create a pool of processes
     pool = multiprocess.Pool(processes=POOL_SIZE)
 
+    start = time.time()
     # Evaluate the initial population
     scores = pool.starmap_async(evaluate, [(function_pointers, individual, x, y) for individual in population]).get()
     pool.terminate()
@@ -194,16 +196,6 @@ if __name__ == '__main__':
             if random.random() < CXPB:
                 offspring += crossover_pop(individual_1, random.choice(population), CXPB)
 
-        # # Mutate elite pool
-        # new_individuals = pool.starmap_async(mutate_pop, [(individual, MUTPB, primitive_set, terminal_set) for individual in population]).get()
-        # for i in new_individuals:
-        #     offspring += i
-
-        # # Crossover elite pool
-        # new_individuals = pool.starmap_async(crossover_pop, [(individual, CXPB, primitive_set, terminal_set) for individual in population]).get()
-        # for i in new_individuals:
-        #     offspring += i
-
         print("Number of offspring:", len(offspring))
 
         # Evaluate the offspring
@@ -224,4 +216,5 @@ if __name__ == '__main__':
 
         print("Best Score:", population[0][1])
 
+    print("Time Taken:", time.time() - start)
     print("Best individual:", str(population[0][0]), population[0][1])

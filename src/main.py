@@ -1,6 +1,6 @@
 from mutation import mutate, mutate_replace, mutate_insert, mutate_shrink
 from node_set import PrimitiveSet, TerminalSet
-from tree import generate_tree, parse_tree
+from tree import generate_tree, parse_tree, check_tree_ids
 from crossover import one_point_crossover
 from copy import deepcopy
 import numpy as np
@@ -39,7 +39,12 @@ if __name__ == '__main__':
     terminal_set.add_terminal("float", "uniform_0_1", random.random, True)
     terminal_set.add_terminal("x", "pass_x", lambda: "x", True)
 
-    tree = generate_tree(primitive_set, terminal_set, depth=4)
+    # Generate a random tree
+    tree = generate_tree(primitive_set, terminal_set, depth=2)
+
+    # Validate node_ids
+    check_tree_ids(tree, "0")
+
     print("Tree String:\n{}\n".format(str(tree)))
     node_ids = tree.get_tree_ids()
     print("Unique Node IDs:\n{}\n".format(node_ids))
@@ -65,6 +70,9 @@ if __name__ == '__main__':
     print("Mutate Replace Tree String:\n{}\n".format(str(new_tree)))
     print("Mutate Replace Tree Size (Number of Nodes):\n{}\n".format(new_tree.size()))
 
+    # Validate node_ids
+    check_tree_ids(tree, "0")
+
     # Re-evaluate the tree after the mutation
     func = new_tree.get_func(primitive_set.function_pointers)
     x = np.array([4.6, 7.3, 9.5])
@@ -77,6 +85,9 @@ if __name__ == '__main__':
     print("Mutate Insert Tree String:\n{}\n".format(str(new_tree)))
     print("Mutate Insert Tree Size (Number of Nodes):\n{}\n".format(new_tree.size()))
 
+    # Validate node_ids
+    check_tree_ids(tree, "0")
+
     # Re-evaluate the tree after the mutation
     func = new_tree.get_func(primitive_set.function_pointers)
     x = np.array([4.6, 7.3, 9.5])
@@ -88,6 +99,9 @@ if __name__ == '__main__':
     # Print new tree
     print("Mutate Shrink Tree String:\n{}\n".format(str(new_tree)))
     print("Mutate Shrink Tree Size (Number of Nodes):\n{}\n".format(new_tree.size()))
+
+    # Validate node_ids
+    check_tree_ids(tree, "0")
 
     # Re-evaluate the tree after the mutation
     func = new_tree.get_func(primitive_set.function_pointers)
@@ -107,10 +121,16 @@ if __name__ == '__main__':
     print("Crossover Tree Number of Unique Node IDs:\n{}\n".format(len(new_tree.get_tree_ids())))
     print("Crossover Tree Input IDs:\n{}\n".format(new_tree.get_input_ids()))
 
+    # Validate node_ids
+    check_tree_ids(new_tree, "0")
+    check_tree_ids(new_tree_2, "0")
+
     # Re-evaluate the tree after the mutation
     func = new_tree.get_func(primitive_set.function_pointers)
     x = np.array([4.6, 7.3, 9.5])
     print("One-Point Crossover Tree Output:\n{}\n".format(func(x)))
+
+    raise Exception
 
     # Test parse_tree on the original tree string
     print("String to parse:\n{}\n".format(tree))
