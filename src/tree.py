@@ -2,212 +2,18 @@
 A Tree consists of one root Node linking down to every other node
 
 Tree gets compiled top down
+
+TODO: Make node_id list recursive
 """
-from copy import deepcopy
 import random
 import ast
 
-class Tree():
-    def __init__(self, nodes, root="0"):
-        # Dictionary with format (node_id -> Node)
-        self.nodes = nodes
-
-        # node_id of the root node
-        self.root = root
-
-    def get_tree_ids(self):
-        """
-        Get list of ids
-
-        Returns:
-            List containing the ids of every node in the tree
-        """
-        return list(self.nodes.keys())
-
-    def get_input_ids(self):
-        """
-        Get list of ids
-        Where each id is a terminal node with output_type "x"
-
-        Returns:
-            List containing the ids of every terminal node with output_type "x" in the tree
-        """
-        return [key for key in self.nodes if len(self.nodes[key].children) == 0 and self.nodes[key].output_type == "x"]
-
-    def get_terminal_ids(self):
-        """
-        Get list of ids
-        Where each id is a terminal node
-
-        Returns:
-            List containing the ids of every terminal node
-        """
-        return [key for key in self.nodes if len(self.nodes[key].children) == 0]
-
-    def remove(self, node_id):
-        """
-        Removes a subtree from a tree
-
-        Args:
-            node_id: id of a node in this tree's node dictionary
-        """
-        # Call this function again on every child
-        for child in self.nodes[node_id].children:
-            self.remove(child)
-
-        # Remove node from the tree
-        del self.nodes[node_id]
-
-    def get_subtree(self, node_id):
-        """
-        Creates a subtree with node_id as the root
-
-        Args:
-            node_id: id of a node in this tree's node dictionary
-
-        Returns:
-            new Tree object of a subtree with node_id as the root
-        """
-        return Tree(self.subtree_recurse(node_id), node_id)
-
-    def subtree_recurse(self, node_id):
-        """
-        Recursively creates a new dictionary of nodes
-        starting with node_id as the root 
-
-        Args:
-            node_id: id of a node in this tree's node dictionary
-
-        Returns:
-            dictionary of all the nodes in the subtree
-        """
-        temp_nodes = {node_id:deepcopy(self.nodes[node_id])}
-        
-        # Recursive call on every child
-        for child in self.nodes[node_id].children:
-            temp_nodes.update(self.subtree_recurse(child))
-
-        return temp_nodes
-
-    def get_func(self, func_pointers):
-        """
-        Recursively converts the tree into a string of function calls
-        Then wraps those function calls into a single function call
-
-        This function assumes a single input, x
-        Which can be used in multiple places
-
-        Args:
-            pset: dictionary where (key, value) is (string, function)
-
-        Returns:
-            Callable function of the tree
-        """
-        return eval("lambda x: " + self.__str__(), func_pointers, {})
-
-    def size(self):
-        """
-        Returns number of nodes in the tree
-
-        Returns:
-            Number of nodes in the tree
-        """
-        return len(self.nodes)
-
-    def regenerate_recurse(self, curr_node_id, new_node_id, position, new_nodes):
-        """
-        Recursively updates all of the node ids of the tree
-        Starting from the given node_id
-
-        Args:
-            curr_node_id: node_id in the existing tree
-            new_node_id: root node_id of the new tree
-            position: string corresponding to the position of the node under the root
-            new_nodes: temporary nodes dictionary used to prevent overwriting the existing nodes
-        """
-        # list for new child ids
-        child_ids = []
-
-        # Replace the old node_id with the new one. Set the value to be the old Node
-        new_nodes[new_node_id + position] = self.nodes.pop(curr_node_id, None)
-
-        # Debug
-        if new_nodes[new_node_id + position] is None:
-            raise Exception("curr_node_id is not in self.nodes")
-
-        # Recursive Call on children
-        for i, node in enumerate(new_nodes[new_node_id + position].children):
-            self.regenerate_recurse(node, new_node_id + position, str(i), new_nodes)
-            child_ids.append(new_node_id + position + str(i))
-
-        # Correct child ids
-        new_nodes[new_node_id + position].children = child_ids
-
-    def regenerate_node_ids(self, new_node_id, position):
-        """
-        Recursively updates all of the node ids of the tree
-        Starting from the given node_id
-
-        Args:
-            node_id: new starting node_id of the tree
-            position: string corresponding to the position of the node under the root
-        """
-        new_nodes = {}
-        self.regenerate_recurse(self.root, new_node_id, position, new_nodes)
-        self.nodes = new_nodes
-        self.root = new_node_id
-
-    def get_func(self, func_pointers):
-        """
-        Recursively converts the tree into a string of function calls
-        Then wraps those function calls into a single function call
-
-        This function assumes a single input, x
-        Which can be used in multiple places
-
-        Args:
-            pset: dictionary where (key, value) is (string, function)
-
-        Returns:
-            Callable function of the tree
-        """
-        return eval("lambda x: " + self.__str__(), func_pointers, {})
-
-    def create_lisp(self, node_id):
-        """
-        Recursively converts the tree into a string of function calls
-        Based on LISP https://en.wikipedia.org/wiki/Lisp_(programming_language)
-
-        Args:
-            node_id: new starting node_id of the tree
-
-        Returns:
-            LISP string representation of the tree
-        """
-        # If Terminal Node
-        if len(self.nodes[node_id].children) == 0:
-            return "{}({})".format(self.nodes[node_id].name, self.nodes[node_id].value)
-        return self.nodes[node_id].name + "(" + "".join([self.create_lisp(i) + ", " for i in self.nodes[node_id].children])[:-2] + ")"
-
-    def __str__(self):
-        """
-        Recursively converts the tree into a string of function calls
-        Based on LISP https://en.wikipedia.org/wiki/Lisp_(programming_language)
-
-        Starts from the root node
-
-        Returns:
-            LISP string representation of the tree
-        """
-        return self.create_lisp(self.root)
-    
-
 class Node():
-    def __init__(self, name, children, output_type, input_types):
+    def __init__(self, name, args, node_id, tree_ids, input_ids, output_type, input_types):
         
         # 0 .. N children nodes. Leaves have 0 children
-        # example args: [child_1, child_2, ... , child_n]
-        self.children = children
+        # example args: ["0", child1, "1.0", "2", child2, child3]
+        self.args = args
 
         # string primitive name
         # example: math.sin
@@ -221,6 +27,126 @@ class Node():
         # Used for evolutionary operators
         self.input_types = input_types
 
+        # Node ID of this node
+        # Used to update tree_ids
+        self.node_id = node_id
+
+        # List of all the ids of the nodes in the tree
+        self.tree_ids = [i for i in tree_ids.keys()]
+
+        # Dictionary of all the ids of the nodes in the tree
+        # Mapped to output_type. ex. 01 -> "float"
+        self.id_outputs = tree_ids
+
+        # List of IDs for terminal nodes with "x" output_type
+        # Used for evolutionary operators
+        self.input_ids = input_ids
+
+    def get_func(self, func_pointers):
+        """
+        Recursively converts the tree into a string of function calls
+        Then wraps those function calls into a single function call
+
+        This function assumes a single input, x
+        Which can be used in multiple places
+
+        Args:
+            pset: dictionary where (key, value) is (string, function)
+
+        Returns:
+            Callable function of the tree
+        """
+        return eval("lambda x: " + self.__str__(), func_pointers, {})
+
+    def get_tree_ids(self):
+        """
+        Get list of ids
+
+        Returns:
+            List containing the ids of every node in the tree
+        """
+        return self.tree_ids
+
+    def get_id_outputs(self):
+        """
+        Get Dictionary of all the ids of the nodes in the tree
+        Mapped to output_type. ex. 01 -> "float"
+
+        Returns:
+            Dictionary containing mapping from id -> output_type
+        """
+        return self.id_outputs
+
+    def get_input_ids(self):
+        """
+        Get list of ids
+        Where each id is a terminal node with output_type "x"
+
+        Returns:
+            List containing the ids of every terminal node with output_type "x" in the tree
+        """
+        return self.input_ids
+
+    def update_tree_ids(self):
+        """
+        Updates tree_ids by adding together the tree_ids of every child
+        """
+        self.tree_ids = [self.node_id]
+        self.id_outputs = {self.node_id:self.output_type}
+        for i in self.args:
+            self.tree_ids += i.get_tree_ids()
+            self.id_outputs.update(i.get_id_outputs())
+
+    def update_input_ids(self):
+        """
+        Updates input_ids by adding together the input_ids of every child
+        """
+        # Only update if the node is not a TerminalNode
+        if len(self.args) != 0:
+            self.input_ids = []
+            for i in self.args:
+                self.input_ids += i.get_input_ids()
+
+    def regenerate_node_ids(self, node_id, position):
+        """
+        Recursively updates all of the node ids of the tree
+        Starting from the given node_id
+
+        Args:
+            node_id: new starting node_id of the tree
+            position: string corresponding to the position of the node under the root
+        """
+        self.node_id = node_id + position
+        self.tree_ids = [self.node_id]
+        self.id_outputs = {self.node_id:self.output_type}
+
+        # If terminal with output_type x
+        if len(self.args) == 0 and self.output_type == "x":
+            self.input_ids = [self.node_id]
+        else:
+            self.input_ids = []
+
+            for i, node in enumerate(self.args):
+                i_ids, t_ids, id_outputs = node.regenerate_node_ids(self.node_id, str(i))
+                self.tree_ids += t_ids
+                self.input_ids += i_ids
+                self.id_outputs.update(id_outputs)
+
+        return self.input_ids, self.tree_ids, self.id_outputs
+
+    def size(self):
+        """
+        Recursively calculate the size of the tree
+
+        Returns:
+            Number of nodes in the tree
+        """
+        # Size starts at 1 to count this node
+        size = 1
+        for i in self.args:
+            size += i.size()
+        return size
+
     def set_name(self, name):
         """
         Replace primitive name with a new one
@@ -233,16 +159,17 @@ class Node():
 
     def __str__(self):
         """
-        Shows the name and input types of the Node
+        Recursively converts the tree into a string of function calls
+        Based on LISP https://en.wikipedia.org/wiki/Lisp_(programming_language)
 
         Returns:
-            string representation of the non-terminal Node
+            LISP string representation of the tree
         """
-        return "{}({})".format(self.name, self.input_types)
+        return self.name + "(" + "".join([str(i) + ", " for i in self.args])[:-2] + ")"
 
 class TerminalNode(Node):
-    def __init__(self, name, children, output_type, generator, static, value=None, input_types=None):
-        super().__init__(name, children, output_type, input_types)
+    def __init__(self, name, args, node_id, tree_ids, input_ids, output_type, generator, static, input_types=None, value=None):
+        super().__init__(name, args, node_id, tree_ids, input_ids, output_type, input_types)
 
         # String of the terminal value
         # This should be a python primitive (float, int, str, list, etc ...)
@@ -283,10 +210,8 @@ class TerminalNode(Node):
 
     def __str__(self):
         """
-        Shows the name and value of the TerminalNode
-
         Returns:
-            string representation of the TerminalNode
+            string representation of terminal value
         """
         return "{}({})".format(self.name, self.value)
 
@@ -302,12 +227,10 @@ def generate(primitive_set, terminal_set, depth, output_types, node_id):
         node_id:       string id of the node
 
     Returns:
-        Dictionary of nodes in the tree
+        Node containing full tree
     """
-    # Dictionary of child nodes
-    nodes = {}
-    # Ids of the children generated by this recursion
-    child_ids = []
+    # List of child nodes
+    nodes = []
     # Use to differentiate ids
     id_counter = 0
 
@@ -320,12 +243,16 @@ def generate(primitive_set, terminal_set, depth, output_types, node_id):
             # Create current node_id
             curr_node_id = node_id + str(id_counter)
 
-            # Add current node_id to child_ids
-            child_ids.append(curr_node_id)
+            # Keeps track of the terminal node ids
+            # Starts with the node id of the parent
+            node_ids = {curr_node_id:output_type}
+
+            # Keep track of "x" input Terminals
+            input_ids = []
 
             # Set the leaf nodes to be Terminal Nodes
+            term_args = []
             id_counter_term = 0
-            term_child_ids = []
             for input_type in primitive["input_types"]:
                 # Choose a random terminal with the correct output type
                 terminal = random.choice(terminal_set.node_set[input_type])
@@ -333,24 +260,28 @@ def generate(primitive_set, terminal_set, depth, output_types, node_id):
                 # Calculate node id of this Terminal
                 term_node_id = curr_node_id + str(id_counter_term)
 
+                # Pass node_id of this Terminal if input_type is x
+                input_ids_temp = [term_node_id] if input_type == "x" else []
+
                 # Create a new TerminalNode
-                nodes[term_node_id] = TerminalNode(terminal["name"], [], input_type, 
-                                                   terminal["generator"], terminal["static"])
-
-                # Add the terminal id to the terminal child id list
-                term_child_ids.append(term_node_id)
-
+                term_args.append(TerminalNode(terminal["name"], 
+                                         [], term_node_id, {term_node_id:input_type}, input_ids_temp,
+                                         input_type, terminal["generator"], terminal["static"]))
+                # Add terminal node id to the node id list
+                node_ids[term_node_id] = input_type
+                # Add terminal input_ids to the parent's input_ids
+                input_ids += input_ids_temp
                 # Increment terminal id counter so each terminal will have a different id
                 id_counter_term += 1
 
             # Create the Node and add it to the list of children
-            nodes[curr_node_id] = Node(primitive["name"], term_child_ids,
-                                       output_type, primitive["input_types"])
+            nodes.append(Node(primitive["name"], term_args, curr_node_id, 
+                              node_ids, input_ids, output_type, primitive["input_types"]))
 
             # Increment id counter so each child will have a different id
             id_counter += 1
         
-        return nodes, child_ids
+        return nodes
 
     # All other nodes
     for output_type in output_types:
@@ -362,21 +293,25 @@ def generate(primitive_set, terminal_set, depth, output_types, node_id):
 
         # Generate children nodes
         # One for each input type
-        p_nodes, p_child_ids = generate(primitive_set, terminal_set, depth-1, primitive["input_types"], curr_node_id)
+        p_nodes = generate(primitive_set, terminal_set, depth-1, primitive["input_types"], curr_node_id)
 
-        # Add p_nodes to the nodes dictionary
-        nodes.update(p_nodes)
+        # Create full list of ids by combining the id lists of the children
+        tree_ids = {curr_node_id:output_type}
+        for node in p_nodes:
+            tree_ids.update(node.get_id_outputs())
         
-        # Create the Node and add it children dictionary
-        nodes[curr_node_id] = Node(primitive["name"], p_child_ids, output_type, primitive["input_types"])
-
-        # Add current node_id to list of child ids
-        child_ids.append(curr_node_id)
+        # Combine input_ids of children
+        input_ids = []
+        for node in p_nodes:
+            input_ids += node.get_input_ids()
+        
+        # Create the Node and add it to the list of children
+        nodes.append(Node(primitive["name"], p_nodes, curr_node_id, tree_ids, input_ids, output_type, primitive["input_types"]))
 
         # Increment id counter so each child will have a different id
         id_counter += 1
 
-    return nodes, child_ids
+    return nodes
 
 def generate_tree(primitive_set, terminal_set, depth=1):
     """
@@ -395,9 +330,75 @@ def generate_tree(primitive_set, terminal_set, depth=1):
     if depth < 1:
         raise ValueError("Depth must be greater than 0")
 
-    # Generate tree
-    nodes, child_ids = generate(primitive_set, terminal_set, depth, ["x"], "")
-    return Tree(nodes)
+    return generate(primitive_set, terminal_set, depth, ["x"], "")[0]
+
+def apply_at_node(modifier, primitive_set, terminal_set, tree, node_id):
+    """
+    Recurse through the tree until the node is found
+    Then apply an operation to the node
+
+    Args:
+        modifier: callable function that modifies a Node
+        primitive_set: dictionary where (key, value) is (output_type, [{"name", "input_types", "group"}, ...])
+        terminal_set:  dictionary where (key, value) is (output_type, [{"name", "generator", "static"}, ...])
+        tree: Node containing full tree
+        node_id: string id directing which nodes to traverse
+
+    Returns:
+        Node containing full tree
+    """
+    # We have reached the correct node if the string is empty
+    if node_id == "":
+        # Apply the modification
+        tree = modifier(primitive_set, terminal_set, tree)
+
+        # Return the modified tree node
+        return tree
+
+    # This gets casted to an integer so it can be used as an index
+    node_index = int(node_id[0])
+    # The next node is the correct node if the length of the node_id is 1
+    if len(node_id) == 1:
+        next_id = ""
+    else:
+        next_id = node_id[1:]
+
+    # Set the correct child to be the result of the recursion
+    tree.args[node_index] = apply_at_node(modifier, primitive_set, terminal_set, tree.args[node_index], next_id)
+
+    # Update the tree_ids and input_ids of the tree
+    tree.update_tree_ids()
+    tree.update_input_ids()
+
+    return tree
+
+def find_subtree(tree, node_id):
+    """
+    Recurse through the tree until the node is found
+    Then return the node
+
+    Args:
+        tree: Node containing full tree
+        node_id: string id directing which nodes to traverse
+
+    Returns:
+        Node containing full tree
+    """
+    # We have reached the correct node if the string is empty
+    if node_id == "":
+        # Return the tree node
+        return tree
+
+    # This gets casted to an integer so it can be used as an index
+    node_index = int(node_id[0])
+    # The next node is the correct node if the length of the node_id is 1
+    if len(node_id) == 1:
+        next_id = ""
+    else:
+        next_id = node_id[1:]
+
+    # Return the recursive call
+    return find_subtree(tree.args[node_index], next_id)
 
 def parse_tree(line, pset, tset):
     """
@@ -546,16 +547,18 @@ def parse_tree(line, pset, tset):
     # Return the root node
     return node_stack.pop()
 
-def check_tree_ids(tree, node_id):
+def check_tree_ids(tree):
     """
     Checks to make sure every node id is correct in a tree
     Used for debugging
 
     Args:
-        tree: tree object containing nodes
-        node_id: id of the node to search
+        tree: node containing full tree
+  
+    Returns:
+        Node containing full tree
     """
-    for i, node in enumerate(tree.nodes[node_id].children):
-        if node != node_id + str(i):
+    for i, node in enumerate(tree.args):
+        if node.node_id != tree.node_id + str(i):
             import pdb; pdb.set_trace()
-        check_tree_ids(tree, node)
+        check_tree_ids(node)
